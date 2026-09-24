@@ -1,0 +1,1451 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Ryntra settlement receipt",
+  "description": "A settlement receipt issued by Ryntra for one operation on Arc: what was approved, what the chain shows, and two SHA-256 seals over the canonical JSON of the record. The schema version selects the kind — 1.0.0 and 1.1.0 a transfer, 1.2.0 a payout (with `payout`), 1.3.0 and 1.5.0 an exchange (with `swap`), 1.4.0 a crosschain transfer (with `bridge`) — and the hash contract of `receiptHash`. Rules across members (the version-gated blocks, the approval timeline, the stated limitations, the seals themselves) cannot be written in JSON Schema; @ryntra/arc-verify recomputes the seals and reads the chain.",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "enum": [
+        "1.0.0",
+        "1.1.0",
+        "1.2.0",
+        "1.3.0",
+        "1.4.0",
+        "1.5.0"
+      ]
+    },
+    "id": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 128
+    },
+    "tenantId": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 128
+    },
+    "evidenceStatus": {
+      "type": "string",
+      "enum": [
+        "COMPLETE",
+        "PARTIAL",
+        "INSUFFICIENT",
+        "CONFLICTING",
+        "UNAVAILABLE"
+      ]
+    },
+    "policyDecision": {
+      "type": "string",
+      "enum": [
+        "ALLOWED_BY_POLICY",
+        "REVIEW_REQUIRED",
+        "BLOCKED_BY_RULE",
+        "INSUFFICIENT_EVIDENCE",
+        "UNSUPPORTED",
+        "EXPIRED"
+      ]
+    },
+    "authorizationStatus": {
+      "type": "string",
+      "const": "APPROVED"
+    },
+    "executionStatus": {
+      "type": "string",
+      "const": "CONFIRMED"
+    },
+    "policyVersion": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 9007199254740991
+    },
+    "policyDigest": {
+      "type": "string",
+      "pattern": "^0x[0-9a-fA-F]{64}$"
+    },
+    "preflightHash": {
+      "type": "string",
+      "pattern": "^0x[0-9a-fA-F]{64}$"
+    },
+    "expectedEffects": {
+      "type": "object",
+      "properties": {
+        "amountIn": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$"
+        },
+        "amountOut": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$"
+        },
+        "minimumAmountOut": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$"
+        },
+        "feeAmount": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$"
+        },
+        "totalDebit": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$"
+        }
+      },
+      "required": [
+        "amountIn",
+        "amountOut",
+        "minimumAmountOut",
+        "feeAmount",
+        "totalDebit"
+      ],
+      "additionalProperties": false
+    },
+    "actualEffects": {
+      "type": "object",
+      "properties": {
+        "amountIn": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$"
+        },
+        "amountOut": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$"
+        },
+        "feeAmount": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$"
+        }
+      },
+      "required": [
+        "amountIn",
+        "amountOut",
+        "feeAmount"
+      ],
+      "additionalProperties": false
+    },
+    "reconciliationStatus": {
+      "type": "string",
+      "enum": [
+        "MATCHED",
+        "DEVIATION_RECORDED"
+      ]
+    },
+    "intent": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 128
+        },
+        "revision": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "hash": {
+          "type": "string",
+          "pattern": "^0x[0-9a-fA-F]{64}$"
+        }
+      },
+      "required": [
+        "id",
+        "revision",
+        "hash"
+      ],
+      "additionalProperties": false
+    },
+    "evidence": {
+      "type": "object",
+      "properties": {
+        "root": {
+          "type": "string",
+          "pattern": "^0x[0-9a-fA-F]{64}$"
+        },
+        "refs": {
+          "maxItems": 256,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 128
+          }
+        }
+      },
+      "required": [
+        "root",
+        "refs"
+      ],
+      "additionalProperties": false
+    },
+    "policy": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "version": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "hash": {
+          "type": "string",
+          "pattern": "^0x[0-9a-fA-F]{64}$"
+        },
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "ALLOWED_BY_POLICY",
+            "REVIEW_REQUIRED",
+            "BLOCKED_BY_RULE",
+            "INSUFFICIENT_EVIDENCE",
+            "UNSUPPORTED",
+            "EXPIRED"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "version",
+        "hash",
+        "outcome"
+      ],
+      "additionalProperties": false
+    },
+    "authorization": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 128
+        },
+        "method": {
+          "type": "string",
+          "enum": [
+            "PARTNER_AUTHENTICATED",
+            "EIP712"
+          ]
+        },
+        "subjectRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        },
+        "expiresAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        },
+        "executionFingerprintHash": {
+          "type": "string",
+          "pattern": "^0x[0-9a-fA-F]{64}$"
+        }
+      },
+      "required": [
+        "id",
+        "method",
+        "subjectRef",
+        "createdAt"
+      ],
+      "additionalProperties": false
+    },
+    "execution": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 128
+        },
+        "fingerprintHash": {
+          "type": "string",
+          "pattern": "^0x[0-9a-fA-F]{64}$"
+        },
+        "bindingKind": {
+          "type": "string",
+          "enum": [
+            "EVM_TRANSACTION",
+            "APP_KIT_REQUEST"
+          ]
+        },
+        "productionCalldataBound": {
+          "type": "boolean"
+        },
+        "transactionHash": {
+          "type": "string",
+          "pattern": "^0x[0-9a-fA-F]{64}$"
+        },
+        "status": {
+          "type": "string",
+          "const": "CONFIRMED"
+        },
+        "explorerUrl": {
+          "type": "string",
+          "pattern": "^(?:https:\\/\\/testnet\\.arcscan\\.app|https:\\/\\/explorer\\.arc\\.io)\\/tx\\/0x[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "id",
+        "fingerprintHash",
+        "bindingKind",
+        "productionCalldataBound",
+        "transactionHash",
+        "status",
+        "explorerUrl"
+      ],
+      "additionalProperties": false
+    },
+    "reconciliation": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "MATCHED",
+            "DEVIATION_RECORDED"
+          ]
+        },
+        "expected": {
+          "type": "object",
+          "properties": {
+            "amountIn": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$"
+            },
+            "amountOut": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$"
+            },
+            "minimumAmountOut": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$"
+            },
+            "feeAmount": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$"
+            },
+            "totalDebit": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$"
+            }
+          },
+          "required": [
+            "amountIn",
+            "amountOut",
+            "minimumAmountOut",
+            "feeAmount",
+            "totalDebit"
+          ],
+          "additionalProperties": false
+        },
+        "actual": {
+          "type": "object",
+          "properties": {
+            "amountIn": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$"
+            },
+            "amountOut": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$"
+            },
+            "feeAmount": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$"
+            }
+          },
+          "required": [
+            "amountIn",
+            "amountOut",
+            "feeAmount"
+          ],
+          "additionalProperties": false
+        },
+        "evidence": {
+          "type": "object",
+          "properties": {
+            "provider": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "sourceRef": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            "verificationStatus": {
+              "type": "string",
+              "enum": [
+                "PROVIDER_REPORTED",
+                "ONCHAIN_VERIFIED"
+              ]
+            },
+            "observedAt": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+            },
+            "responseDigest": {
+              "type": "string",
+              "pattern": "^0x[0-9a-fA-F]{64}$"
+            }
+          },
+          "required": [
+            "provider",
+            "sourceRef",
+            "verificationStatus",
+            "observedAt",
+            "responseDigest"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "status",
+        "expected",
+        "actual",
+        "evidence"
+      ],
+      "additionalProperties": false
+    },
+    "settlement": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "const": "CONFIRMED"
+        },
+        "recoveryState": {
+          "type": "string",
+          "const": "NOT_REQUIRED"
+        }
+      },
+      "required": [
+        "status",
+        "recoveryState"
+      ],
+      "additionalProperties": false
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+    },
+    "finalizedAt": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+    },
+    "limitations": {
+      "minItems": 1,
+      "maxItems": 64,
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 128
+      }
+    },
+    "payout": {
+      "type": "object",
+      "properties": {
+        "payoutId": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 128
+        },
+        "purposeCode": {
+          "type": "string",
+          "enum": [
+            "INVOICE",
+            "PAYROLL",
+            "REFUND",
+            "TREASURY_TRANSFER"
+          ]
+        },
+        "amount": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$"
+        },
+        "amountBaseUnits": {
+          "type": "string",
+          "maxLength": 40,
+          "pattern": "^(0|[1-9]\\d*)$"
+        },
+        "beneficiaryRef": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 128
+        },
+        "beneficiaryVersion": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "beneficiaryWalletAddress": {
+          "type": "string",
+          "pattern": "^0x[0-9a-fA-F]{40}$"
+        },
+        "treasuryWalletAddress": {
+          "type": "string",
+          "pattern": "^0x[0-9a-fA-F]{40}$"
+        },
+        "payoutInstructionHash": {
+          "type": "string",
+          "pattern": "^0x[0-9a-fA-F]{64}$"
+        },
+        "beneficiaryVersionHash": {
+          "type": "string",
+          "pattern": "^0x[0-9a-fA-F]{64}$"
+        },
+        "policyVersionHash": {
+          "type": "string",
+          "pattern": "^0x[0-9a-fA-F]{64}$"
+        },
+        "approvalSetHash": {
+          "type": "string",
+          "pattern": "^0x[0-9a-fA-F]{64}$"
+        },
+        "externalReferenceHash": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^0x[0-9a-fA-F]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reservationId": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 128
+        },
+        "requiredApprovalCount": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2
+        },
+        "receivedApprovalCount": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2
+        },
+        "requesterRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "approverRefs": {
+          "minItems": 1,
+          "maxItems": 2,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "maxTotalDebitBaseUnits": {
+          "type": "string",
+          "maxLength": 40,
+          "pattern": "^(0|[1-9]\\d*)$"
+        },
+        "actualTotalDebitBaseUnits": {
+          "type": "string",
+          "maxLength": 40,
+          "pattern": "^(0|[1-9]\\d*)$"
+        },
+        "chain": {
+          "type": "object",
+          "properties": {
+            "chainRef": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]+:[A-Za-z0-9-]+$"
+            },
+            "chainId": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "assetRef": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]+:[A-Za-z0-9-]+\\/[a-z0-9-]+:[A-Za-z0-9._%-]+$"
+            },
+            "contractAddress": {
+              "type": "string",
+              "pattern": "^0x[0-9a-fA-F]{40}$"
+            },
+            "decimals": {
+              "type": "number",
+              "const": 6
+            }
+          },
+          "required": [
+            "chainRef",
+            "chainId",
+            "assetRef",
+            "contractAddress",
+            "decimals"
+          ],
+          "additionalProperties": false
+        },
+        "provenance": {
+          "type": "object",
+          "properties": {
+            "rpcSourceRef": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            "blockNumber": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "blockHash": {
+              "type": "string",
+              "pattern": "^0x[0-9a-fA-F]{64}$"
+            },
+            "transactionIndex": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "logIndex": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "confirmations": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "observedAt": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+            }
+          },
+          "required": [
+            "rpcSourceRef",
+            "blockNumber",
+            "blockHash",
+            "transactionIndex",
+            "logIndex",
+            "confirmations",
+            "observedAt"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "payoutId",
+        "purposeCode",
+        "amount",
+        "amountBaseUnits",
+        "beneficiaryRef",
+        "beneficiaryVersion",
+        "beneficiaryWalletAddress",
+        "treasuryWalletAddress",
+        "payoutInstructionHash",
+        "beneficiaryVersionHash",
+        "policyVersionHash",
+        "approvalSetHash",
+        "externalReferenceHash",
+        "reservationId",
+        "requiredApprovalCount",
+        "receivedApprovalCount",
+        "maxTotalDebitBaseUnits",
+        "actualTotalDebitBaseUnits",
+        "chain",
+        "provenance"
+      ],
+      "additionalProperties": false
+    },
+    "swap": {
+      "type": "object",
+      "properties": {
+        "quoteRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "provider": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "routeRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "routeDisclosure": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "slippageBps": {
+          "type": "string",
+          "maxLength": 8,
+          "pattern": "^(0|[1-9]\\d*)$"
+        },
+        "sellAssetRef": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]+:[A-Za-z0-9-]+\\/[a-z0-9-]+:[A-Za-z0-9._%-]+$"
+        },
+        "buyAssetRef": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]+:[A-Za-z0-9-]+\\/[a-z0-9-]+:[A-Za-z0-9._%-]+$"
+        },
+        "quotedFees": {
+          "type": "object",
+          "properties": {
+            "components": {
+              "maxItems": 32,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64
+                  },
+                  "token": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 32
+                  },
+                  "amount": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 128,
+                        "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "side": {
+                    "type": "string",
+                    "enum": [
+                      "NETWORK",
+                      "ROUTE"
+                    ]
+                  },
+                  "takenFrom": {
+                    "type": "string",
+                    "enum": [
+                      "ON_TOP_OF_INPUT",
+                      "INSIDE_INPUT"
+                    ]
+                  }
+                },
+                "required": [
+                  "type",
+                  "token",
+                  "amount",
+                  "side",
+                  "takenFrom"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "networkAmount": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128,
+                  "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "routeAmount": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128,
+                  "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "totalAmount": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128,
+                  "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "coverage": {
+              "type": "string",
+              "enum": [
+                "NETWORK_AND_ROUTE",
+                "NETWORK_ONLY",
+                "ROUTE_ONLY",
+                "NONE",
+                "INCOMPLETE"
+              ]
+            }
+          },
+          "required": [
+            "components",
+            "networkAmount",
+            "routeAmount",
+            "totalAmount",
+            "coverage"
+          ],
+          "additionalProperties": false
+        },
+        "settledFees": {
+          "type": "object",
+          "properties": {
+            "networkAmount": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$"
+            },
+            "networkSource": {
+              "type": "string",
+              "const": "CHAIN_RECEIPT"
+            },
+            "routeAmount": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128,
+                  "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "routeSource": {
+              "type": "string",
+              "enum": [
+                "PROVIDER_QUOTE",
+                "UNAVAILABLE"
+              ]
+            },
+            "routeObservability": {
+              "type": "string",
+              "const": "NOT_ATTRIBUTABLE_ON_CHAIN"
+            },
+            "coverage": {
+              "type": "string",
+              "enum": [
+                "NETWORK_AND_ROUTE",
+                "NETWORK_ONLY",
+                "ROUTE_ONLY",
+                "NONE",
+                "INCOMPLETE"
+              ]
+            }
+          },
+          "required": [
+            "networkAmount",
+            "networkSource",
+            "routeAmount",
+            "routeSource",
+            "routeObservability",
+            "coverage"
+          ],
+          "additionalProperties": false
+        },
+        "debit": {
+          "type": "object",
+          "properties": {
+            "authorizedCeiling": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$"
+            },
+            "settledTotal": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$"
+            },
+            "settledSource": {
+              "type": "string",
+              "const": "CHAIN_RECEIPT"
+            }
+          },
+          "required": [
+            "authorizedCeiling",
+            "settledTotal",
+            "settledSource"
+          ],
+          "additionalProperties": false
+        },
+        "authorizedMinimumAmountOut": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$"
+        },
+        "nativeDebit": {
+          "type": "object",
+          "properties": {
+            "assetRef": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]+:[A-Za-z0-9-]+\\/[a-z0-9-]+:[A-Za-z0-9._%-]+$"
+            },
+            "authorizedCeiling": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$"
+            },
+            "settled": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$"
+            },
+            "settledSource": {
+              "type": "string",
+              "const": "CHAIN_RECEIPT"
+            }
+          },
+          "required": [
+            "assetRef",
+            "authorizedCeiling",
+            "settled",
+            "settledSource"
+          ],
+          "additionalProperties": false
+        },
+        "deviations": {
+          "maxItems": 32,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        }
+      },
+      "required": [
+        "quoteRef",
+        "provider",
+        "routeRef",
+        "routeDisclosure",
+        "slippageBps",
+        "sellAssetRef",
+        "buyAssetRef",
+        "quotedFees",
+        "settledFees",
+        "debit",
+        "authorizedMinimumAmountOut",
+        "deviations"
+      ],
+      "additionalProperties": false
+    },
+    "bridge": {
+      "type": "object",
+      "properties": {
+        "transferId": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 128
+        },
+        "protocol": {
+          "type": "string",
+          "const": "CCTP_V2"
+        },
+        "source": {
+          "type": "object",
+          "properties": {
+            "domain": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 65535
+            },
+            "label": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            }
+          },
+          "required": [
+            "domain",
+            "label"
+          ],
+          "additionalProperties": false
+        },
+        "destination": {
+          "type": "object",
+          "properties": {
+            "domain": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 65535
+            },
+            "label": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            }
+          },
+          "required": [
+            "domain",
+            "label"
+          ],
+          "additionalProperties": false
+        },
+        "speed": {
+          "type": "string",
+          "enum": [
+            "STANDARD",
+            "FAST"
+          ]
+        },
+        "finalityThreshold": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 100000
+        },
+        "sourceTransactionHash": {
+          "type": "string",
+          "pattern": "^0x[0-9a-fA-F]{64}$"
+        },
+        "attestation": {
+          "type": "object",
+          "properties": {
+            "messageHash": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^0x[0-9a-fA-F]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "providerStatus": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "source": {
+              "type": "string",
+              "enum": [
+                "CIRCLE_ATTESTATION_API",
+                "NOT_OBSERVED"
+              ]
+            },
+            "observedAt": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "messageHash",
+            "providerStatus",
+            "source",
+            "observedAt"
+          ],
+          "additionalProperties": false
+        },
+        "destinationEffect": {
+          "type": "object",
+          "properties": {
+            "transactionHash": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^0x[0-9a-fA-F]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "evidenceKind": {
+              "type": "string",
+              "enum": [
+                "CHAIN_RECEIPT",
+                "PROVIDER_REPORTED",
+                "NOT_OBSERVED"
+              ]
+            },
+            "amountReceived": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128,
+                  "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "observedAt": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "absentReason": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "transactionHash",
+            "evidenceKind",
+            "amountReceived",
+            "observedAt",
+            "absentReason"
+          ],
+          "additionalProperties": false
+        },
+        "amounts": {
+          "type": "object",
+          "properties": {
+            "authorized": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$"
+            },
+            "sourceDebited": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$"
+            },
+            "destinationCredited": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128,
+                  "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "transportCost": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128,
+                  "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "authorized",
+            "sourceDebited",
+            "destinationCredited",
+            "transportCost"
+          ],
+          "additionalProperties": false
+        },
+        "fees": {
+          "type": "object",
+          "properties": {
+            "authorizedMaxFee": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$"
+            },
+            "quotedTransportFee": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128,
+                  "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "quotedTransportFeeSource": {
+              "type": "string",
+              "enum": [
+                "PROVIDER_QUOTE",
+                "UNAVAILABLE"
+              ]
+            },
+            "sourceNetworkFee": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d+)?$"
+            },
+            "sourceNetworkFeeSource": {
+              "type": "string",
+              "const": "CHAIN_RECEIPT"
+            }
+          },
+          "required": [
+            "authorizedMaxFee",
+            "quotedTransportFee",
+            "quotedTransportFeeSource",
+            "sourceNetworkFee",
+            "sourceNetworkFeeSource"
+          ],
+          "additionalProperties": false
+        },
+        "duration": {
+          "type": "object",
+          "properties": {
+            "burnConfirmedAt": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+            },
+            "destinationObservedAt": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "elapsedMs": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "burnConfirmedAt",
+            "destinationObservedAt",
+            "elapsedMs"
+          ],
+          "additionalProperties": false
+        },
+        "lifecycleState": {
+          "type": "string",
+          "const": "RECEIPT_ISSUED"
+        },
+        "recovery": {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "whereTheValueIs": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "fundsAtRest": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "action",
+            "whereTheValueIs",
+            "fundsAtRest"
+          ],
+          "additionalProperties": false
+        },
+        "deviations": {
+          "maxItems": 32,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        }
+      },
+      "required": [
+        "transferId",
+        "protocol",
+        "source",
+        "destination",
+        "speed",
+        "finalityThreshold",
+        "sourceTransactionHash",
+        "attestation",
+        "destinationEffect",
+        "amounts",
+        "fees",
+        "duration",
+        "lifecycleState",
+        "recovery",
+        "deviations"
+      ],
+      "additionalProperties": false
+    },
+    "receiptHash": {
+      "type": "string",
+      "pattern": "^0x[0-9a-fA-F]{64}$"
+    },
+    "integrity": {
+      "type": "object",
+      "properties": {
+        "algorithm": {
+          "type": "string",
+          "const": "SHA-256"
+        },
+        "hash": {
+          "type": "string",
+          "pattern": "^0x[0-9a-fA-F]{64}$"
+        }
+      },
+      "required": [
+        "algorithm",
+        "hash"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "id",
+    "tenantId",
+    "evidenceStatus",
+    "policyDecision",
+    "authorizationStatus",
+    "executionStatus",
+    "policyVersion",
+    "policyDigest",
+    "preflightHash",
+    "expectedEffects",
+    "actualEffects",
+    "reconciliationStatus",
+    "intent",
+    "evidence",
+    "policy",
+    "authorization",
+    "execution",
+    "reconciliation",
+    "settlement",
+    "createdAt",
+    "finalizedAt",
+    "limitations",
+    "receiptHash",
+    "integrity"
+  ],
+  "additionalProperties": false
+}

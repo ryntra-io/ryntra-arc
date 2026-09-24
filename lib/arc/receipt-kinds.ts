@@ -1,0 +1,266 @@
+/**
+ * What kind of receipt is this, and what may a stranger be told about it?
+ *
+ * The Public Receipt Verifier answers for anyone holding a reference — no
+ * account, no session, no tenant. Until now it answered with one shape for
+ * every receipt, which was correct and thin: the same six amounts whether the
+ * record was a transfer, a swap, a payout or a crosschain move. A reader
+ * holding a swap receipt could not see what the route cost; a reader holding a
+ * bridge receipt could not see whether the money had arrived.
+ *
+ * So there are two functions here and the split is the whole design.
+ *
+ * `receiptKind` reads the schema version and the blocks present. It never
+ * guesses: a record whose version this deployment does not know is
+ * `UNKNOWN`, and an unknown kind gets the common projection rather than a
+ * kind-specific one built out of hope.
+ *
+ * `publicReceiptDetail` returns the extra, kind-specific fields — and it is an
+ * **allowlist assembled field by field**, never a redaction pass over the
+ * block. The difference matters: a redaction pass leaks whatever a later
+ * version adds, and an allowlist omits it. A payout block, for example, carries
+ * the beneficiary and treasury addresses; nothing from it reaches this
+ * projection at all.
+ *
+ * ## What never leaves, in any kind
+ *
+ * Tenant, requester, approver references, evidence item refs, wallet addresses,
+ * beneficiary references and policy identifiers. `redactDecisionSettlementReceipt`
+ * strips principals but keeps `tenantId`, which is right for an authenticated
+ * export and wrong here — two references would tell a stranger they belong to
+ * one workspace.
+ */
+
+export const RECEIPT_KINDS = ["TRANSFER", "SWAP", "PAYOUT", "BRIDGE", "UNKNOWN"] as const;
+
+export type ReceiptKind = (typeof RECEIPT_KINDS)[number];
+
+type Json = Record<string, unknown>;
+
+function object(value: unknown): Json | null {
+  return value && typeof value === "object" && !Array.isArray(value) ? (value as Json) : null;
+}
+
+function text(value: unknown): string | null {
+  return typeof value === "string" && value.length > 0 ? value : null;
+}
+
+function integer(value: unknown): number | null {
+  return typeof value === "number" && Number.isInteger(value) ? value : null;
+}
+
+function bool(value: unknown): boolean | null {
+  return typeof value === "boolean" ? value : null;
+}
+
+/**
+ * The kind, read from the record rather than assumed from the surface.
+ *
+ * Version and block are both checked. A `1.2.0` without a payout block is not a
+ * payout — the schema forbids it, and a store holding one is holding something
+ * this function should not describe as a payout on the strength of a version
+ * string alone.
+ */
+export function receiptKind(record: Json): ReceiptKind {
+  const version = text(record.schemaVersion);
+  if (version === "1.4.0" && object(record.bridge)) return "BRIDGE";
+  if (version === "1.3.0" && object(record.swap)) return "SWAP";
+  if (version === "1.2.0" && object(record.payout)) return "PAYOUT";
+  if (version === "1.0.0" || version === "1.1.0") return "TRANSFER";
+  return "UNKNOWN";
+}
+
+export type PublicSwapDetail = Readonly<{
+  provider: string | null;
+  routeDisclosure: string | null;
+  slippageBps: string | null;
+  quotedNetworkFee: string | null;
+  quotedRouteFee: string | null;
+  quotedTotalFee: string | null;
+  quotedFeeCoverage: string | null;
+  settledNetworkFee: string | null;
+  settledNetworkFeeSource: string | null;
+  settledRouteFee: string | null;
+  settledRouteFeeSource: string | null;
+  settledRouteObservability: string | null;
+  authorizedCeiling: string | null;
+  settledTotalDebit: string | null;
+  authorizedMinimumAmountOut: string | null;
+  deviations: readonly string[];
+}>;
+
+export type PublicPayoutDetail = Readonly<{
+  purposeCode: string | null;
+  amount: string | null;
+  requiredApprovalCount: number | null;
+  receivedApprovalCount: number | null;
+  maxTotalDebit: string | null;
+  actualTotalDebit: string | null;
+  confirmations: number | null;
+  blockNumber: number | null;
+}>;
+
+export type PublicBridgeDetail = Readonly<{
+  protocol: string | null;
+  sourceLabel: string | null;
+  sourceDomain: number | null;
+  destinationLabel: string | null;
+  destinationDomain: number | null;
+  speed: string | null;
+  finalityThreshold: number | null;
+  sourceTransactionHash: string | null;
+  attestationStatus: string | null;
+  attestationObservedAt: string | null;
+  destinationEvidenceKind: string | null;
+  destinationTransactionHash: string | null;
+  destinationAbsentReason: string | null;
+  authorized: string | null;
+  sourceDebited: string | null;
+  destinationCredited: string | null;
+  transportCost: string | null;
+  authorizedMaxFee: string | null;
+  quotedTransportFee: string | null;
+  quotedTransportFeeSource: string | null;
+  sourceNetworkFee: string | null;
+  elapsedMs: number | null;
+  lifecycleState: string | null;
+  whereTheValueIs: string | null;
+  fundsAtRest: boolean | null;
+  deviations: readonly string[];
+}>;
+
+export type PublicReceiptDetail =
+  | Readonly<{ kind: "TRANSFER"; detail: null }>
+  | Readonly<{ kind: "UNKNOWN"; detail: null }>
+  | Readonly<{ kind: "SWAP"; detail: PublicSwapDetail }>
+  | Readonly<{ kind: "PAYOUT"; detail: PublicPayoutDetail }>
+  | Readonly<{ kind: "BRIDGE"; detail: PublicBridgeDetail }>;
+
+function strings(value: unknown): readonly string[] {
+  return Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === "string") : [];
+}
+
+export function publicReceiptDetail(record: Json): PublicReceiptDetail {
+  const kind = receiptKind(record);
+
+  if (kind === "SWAP") {
+    const swap = object(record.swap) ?? {};
+    const quoted = object(swap.quotedFees) ?? {};
+    const settled = object(swap.settledFees) ?? {};
+    const debit = object(swap.debit) ?? {};
+    return {
+      kind,
+      detail: {
+        provider: text(swap.provider),
+        routeDisclosure: text(swap.routeDisclosure),
+        slippageBps: text(swap.slippageBps),
+        quotedNetworkFee: text(quoted.networkAmount),
+        quotedRouteFee: text(quoted.routeAmount),
+        quotedTotalFee: text(quoted.totalAmount),
+        quotedFeeCoverage: text(quoted.coverage),
+        settledNetworkFee: text(settled.networkAmount),
+        settledNetworkFeeSource: text(settled.networkSource),
+        settledRouteFee: text(settled.routeAmount),
+        settledRouteFeeSource: text(settled.routeSource),
+        settledRouteObservability: text(settled.routeObservability),
+        authorizedCeiling: text(debit.authorizedCeiling),
+        settledTotalDebit: text(debit.settledTotal),
+        authorizedMinimumAmountOut: text(swap.authorizedMinimumAmountOut),
+        deviations: strings(swap.deviations),
+      },
+    };
+  }
+
+  if (kind === "PAYOUT") {
+    /* The narrowest projection of the four, and deliberately so. A payout block
+       carries the beneficiary address, the treasury address, the beneficiary
+       version reference and the requester and approver principals. None of them
+       is here: what a stranger may check about a payout is that it happened,
+       under how many approvals, for how much, and against which ceiling. */
+    const payout = object(record.payout) ?? {};
+    const provenance = object(payout.provenance) ?? {};
+    return {
+      kind,
+      detail: {
+        purposeCode: text(payout.purposeCode),
+        amount: text(payout.amount),
+        requiredApprovalCount: integer(payout.requiredApprovalCount),
+        receivedApprovalCount: integer(payout.receivedApprovalCount),
+        maxTotalDebit: text(payout.maxTotalDebitBaseUnits),
+        actualTotalDebit: text(payout.actualTotalDebitBaseUnits),
+        confirmations: integer(provenance.confirmations),
+        blockNumber: integer(provenance.blockNumber),
+      },
+    };
+  }
+
+  if (kind === "BRIDGE") {
+    const bridge = object(record.bridge) ?? {};
+    const source = object(bridge.source) ?? {};
+    const destination = object(bridge.destination) ?? {};
+    const attestation = object(bridge.attestation) ?? {};
+    const effect = object(bridge.destinationEffect) ?? {};
+    const amounts = object(bridge.amounts) ?? {};
+    const fees = object(bridge.fees) ?? {};
+    const duration = object(bridge.duration) ?? {};
+    const recovery = object(bridge.recovery) ?? {};
+    return {
+      kind,
+      detail: {
+        protocol: text(bridge.protocol),
+        sourceLabel: text(source.label),
+        sourceDomain: integer(source.domain),
+        destinationLabel: text(destination.label),
+        destinationDomain: integer(destination.domain),
+        speed: text(bridge.speed),
+        finalityThreshold: integer(bridge.finalityThreshold),
+        sourceTransactionHash: text(bridge.sourceTransactionHash),
+        attestationStatus: text(attestation.providerStatus),
+        attestationObservedAt: text(attestation.observedAt),
+        destinationEvidenceKind: text(effect.evidenceKind),
+        destinationTransactionHash: text(effect.transactionHash),
+        destinationAbsentReason: text(effect.absentReason),
+        authorized: text(amounts.authorized),
+        sourceDebited: text(amounts.sourceDebited),
+        destinationCredited: text(amounts.destinationCredited),
+        transportCost: text(amounts.transportCost),
+        authorizedMaxFee: text(fees.authorizedMaxFee),
+        quotedTransportFee: text(fees.quotedTransportFee),
+        quotedTransportFeeSource: text(fees.quotedTransportFeeSource),
+        sourceNetworkFee: text(fees.sourceNetworkFee),
+        elapsedMs: integer(duration.elapsedMs),
+        lifecycleState: text(bridge.lifecycleState),
+        whereTheValueIs: text(recovery.whereTheValueIs),
+        fundsAtRest: bool(recovery.fundsAtRest),
+        deviations: strings(bridge.deviations),
+      },
+    };
+  }
+
+  return { kind, detail: null };
+}
+
+/**
+ * Values that must never appear in a public projection, whatever the kind.
+ *
+ * Exported so the test and the route read the same list, and written as
+ * extractors rather than as a denylist of strings: a denylist over serialized
+ * JSON passes the moment somebody renames a field, and this asks the record
+ * itself what its secrets are and then checks the projection for them.
+ */
+export function receiptPrivateValues(record: Json): readonly string[] {
+  const payout = object(record.payout) ?? {};
+  const authorization = object(record.authorization) ?? {};
+  const evidence = object(record.evidence) ?? {};
+  return [
+    text(record.tenantId),
+    text(authorization.subjectRef),
+    text(authorization.id),
+    text(payout.beneficiaryWalletAddress),
+    text(payout.treasuryWalletAddress),
+    text(payout.beneficiaryRef),
+    text(payout.requesterRef),
+    ...(Array.isArray(payout.approverRefs) ? payout.approverRefs.filter((entry): entry is string => typeof entry === "string") : []),
+    ...strings(evidence.refs),
+  ].filter((value): value is string => value !== null);
+}

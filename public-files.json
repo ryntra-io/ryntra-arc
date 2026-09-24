@@ -1,0 +1,109 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "RYNTRA_PUBLIC_FILE_LIST",
+  "repository": "ryntra-arc",
+  "license": "Apache-2.0",
+  "note": "The files this package is made of. Generated from the publication allowlist; the boundary test reads this list and scans exactly these files, so a file added without being listed never reaches the public repository.",
+  "files": [
+    {
+      "path": "lib/arc/receipt-kinds.ts",
+      "role": "source"
+    },
+    {
+      "path": "lib/guard/canonical-json.ts",
+      "role": "source"
+    },
+    {
+      "path": "lib/guard/canonical.ts",
+      "role": "source"
+    },
+    {
+      "path": "lib/guard/networks.ts",
+      "role": "source"
+    },
+    {
+      "path": "lib/guard/payout-canonical.ts",
+      "role": "source"
+    },
+    {
+      "path": "packages/arc-verify/README.md",
+      "role": "documentation"
+    },
+    {
+      "path": "packages/arc-verify/package.json",
+      "role": "package_metadata"
+    },
+    {
+      "path": "packages/arc-verify/schema/receipt.schema.json",
+      "role": "published_schema"
+    },
+    {
+      "path": "packages/arc-verify/src/canonical.test.mjs",
+      "role": "network_free_test"
+    },
+    {
+      "path": "packages/arc-verify/src/canonical.ts",
+      "role": "source"
+    },
+    {
+      "path": "packages/arc-verify/src/chain.test.mjs",
+      "role": "network_free_test"
+    },
+    {
+      "path": "packages/arc-verify/src/chain.ts",
+      "role": "source"
+    },
+    {
+      "path": "packages/arc-verify/src/check.test.mjs",
+      "role": "network_free_test"
+    },
+    {
+      "path": "packages/arc-verify/src/check.ts",
+      "role": "source"
+    },
+    {
+      "path": "packages/arc-verify/src/cli.test.mjs",
+      "role": "network_free_test"
+    },
+    {
+      "path": "packages/arc-verify/src/cli.ts",
+      "role": "source"
+    },
+    {
+      "path": "packages/arc-verify/src/index.ts",
+      "role": "source"
+    },
+    {
+      "path": "packages/arc-verify/src/networks.ts",
+      "role": "source"
+    },
+    {
+      "path": "packages/arc-verify/src/receipt.test.mjs",
+      "role": "network_free_test"
+    },
+    {
+      "path": "packages/arc-verify/src/receipt.ts",
+      "role": "source"
+    },
+    {
+      "path": "packages/arc-verify/src/schema.test.mjs",
+      "role": "network_free_test"
+    },
+    {
+      "path": "packages/arc-verify/src/test-fixtures.mjs",
+      "role": "network_free_test"
+    },
+    {
+      "path": "packages/arc-verify/src/verifier.ts",
+      "role": "source"
+    },
+    {
+      "path": "packages/arc-verify/src/verify.test.mjs",
+      "role": "network_free_test"
+    },
+    {
+      "path": "packages/arc-verify/src/verify.ts",
+      "role": "source"
+    }
+  ]
+}

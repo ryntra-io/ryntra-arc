@@ -1,0 +1,35 @@
+{
+  "name": "ryntra-arc",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Check a Ryntra settlement receipt yourself: its schema, its canonical serialization and seals, and the transfer, payout or USDC/EURC exchange it records read back from Arc.",
+  "author": "Dmytro Plavutskyi",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ryntra-io/ryntra-arc.git"
+  },
+  "engines": {
+    "node": ">=22.18 <25"
+  },
+  "packageManager": "npm@10.9.8",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit --incremental false",
+    "lint": "eslint lib packages scripts --max-warnings=0",
+    "test": "node --test packages/arc-verify/src/canonical.test.mjs packages/arc-verify/src/receipt.test.mjs packages/arc-verify/src/schema.test.mjs packages/arc-verify/src/chain.test.mjs packages/arc-verify/src/check.test.mjs packages/arc-verify/src/verify.test.mjs packages/arc-verify/src/cli.test.mjs",
+    "verify:boundaries": "node scripts/verify-boundaries.mjs",
+    "verify": "npm run lint && npm run typecheck && npm test && npm run verify:boundaries",
+    "arc-verify": "node packages/arc-verify/src/cli.ts"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.0",
+    "@typescript-eslint/eslint-plugin": "8.66.0",
+    "@typescript-eslint/parser": "8.66.0",
+    "eslint": "9.39.5",
+    "typescript": "5.9.3"
+  }
+}
