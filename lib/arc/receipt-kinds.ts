@@ -31,7 +31,7 @@
  * one workspace.
  */
 
-export const RECEIPT_KINDS = ["TRANSFER", "SWAP", "PAYOUT", "BRIDGE", "UNKNOWN"] as const;
+export const RECEIPT_KINDS = ["TRANSFER", "SWAP", "PAYOUT", "BRIDGE", "RECEIVED", "UNKNOWN"] as const;
 
 export type ReceiptKind = (typeof RECEIPT_KINDS)[number];
 
@@ -63,6 +63,10 @@ function bool(value: unknown): boolean | null {
  */
 export function receiptKind(record: Json): ReceiptKind {
   const version = text(record.schemaVersion);
+  /* A payment a team received through its request (Arc 11,
+     `lib/guard/arc-received-receipt.ts`): its own record, resting on the
+     payer's transfer receipt. */
+  if (version === "1.6.0" && object(record.received)) return "RECEIVED";
   if (version === "1.4.0" && object(record.bridge)) return "BRIDGE";
   if (version === "1.3.0" && object(record.swap)) return "SWAP";
   if (version === "1.2.0" && object(record.payout)) return "PAYOUT";
@@ -129,12 +133,22 @@ export type PublicBridgeDetail = Readonly<{
   deviations: readonly string[];
 }>;
 
+export type PublicReceivedDetail = Readonly<{
+  asset: string | null;
+  amount: string | null;
+  paidAt: string | null;
+  /** The payer's transfer receipt this one rests on — checkable on its own. */
+  payerReceiptId: string | null;
+  matchedBy: string | null;
+}>;
+
 export type PublicReceiptDetail =
   | Readonly<{ kind: "TRANSFER"; detail: null }>
   | Readonly<{ kind: "UNKNOWN"; detail: null }>
   | Readonly<{ kind: "SWAP"; detail: PublicSwapDetail }>
   | Readonly<{ kind: "PAYOUT"; detail: PublicPayoutDetail }>
-  | Readonly<{ kind: "BRIDGE"; detail: PublicBridgeDetail }>;
+  | Readonly<{ kind: "BRIDGE"; detail: PublicBridgeDetail }>
+  | Readonly<{ kind: "RECEIVED"; detail: PublicReceivedDetail }>;
 
 function strings(value: unknown): readonly string[] {
   return Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === "string") : [];
@@ -237,6 +251,25 @@ export function publicReceiptDetail(record: Json): PublicReceiptDetail {
     };
   }
 
+  if (kind === "RECEIVED") {
+    /* Private by default (CANON §5, п. 9): who asked, who paid, where to, for
+       what and under which invoice number stay with the team. A stranger
+       holding the reference learns that a payment of this much arrived, when,
+       and which transfer receipt it rests on. */
+    const received = object(record.received) ?? {};
+    const payerReceipt = object(received.payerReceipt) ?? {};
+    return {
+      kind,
+      detail: {
+        asset: text(received.asset),
+        amount: text(received.amount),
+        paidAt: text(received.paidAt),
+        payerReceiptId: text(payerReceipt.id),
+        matchedBy: text(received.matchedBy),
+      },
+    };
+  }
+
   return { kind, detail: null };
 }
 
@@ -252,7 +285,13 @@ export function receiptPrivateValues(record: Json): readonly string[] {
   const payout = object(record.payout) ?? {};
   const authorization = object(record.authorization) ?? {};
   const evidence = object(record.evidence) ?? {};
+  const received = object(record.received) ?? {};
   return [
+    text(received.payee),
+    text(received.payer),
+    text(received.requestId),
+    text(received.purpose),
+    text(received.reference),
     text(record.tenantId),
     text(authorization.subjectRef),
     text(authorization.id),

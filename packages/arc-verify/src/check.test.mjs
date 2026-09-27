@@ -18,7 +18,21 @@ import {
 } from "./check.ts";
 import { ARC_TESTNET_NETWORK } from "./networks.ts";
 import { publicSummary } from "./receipt.ts";
-import { BENEFICIARY, TREASURY, USDC, chainWorld, fakeRpc, payoutReceipt, seal, swapCore, swapReceipt, transferCore, transferReceipt } from "./test-fixtures.mjs";
+import {
+  BENEFICIARY,
+  TREASURY,
+  USDC,
+  chainWorld,
+  fakeRpc,
+  payoutReceipt,
+  receivedCore,
+  receivedReceipt,
+  seal,
+  swapCore,
+  swapReceipt,
+  transferCore,
+  transferReceipt,
+} from "./test-fixtures.mjs";
 
 const ENDPOINT = "https://rpc.example";
 
@@ -183,4 +197,31 @@ test("decimal strings convert to base units exactly, and never through a float",
   assert.equal(fromBaseUnits(25_200_000_000n, 9, false), "25.2");
   assert.equal(ceilToSixDecimals(1_233_540_000_000_000n), 1_234n);
   assert.equal(ceilToSixDecimals(1_234_000_000_000_000n), 1_234n, "an exact amount is not rounded");
+});
+
+test("a received payment, read from its file, matches the amount, the payee and the payer Arc shows", async () => {
+  const checks = checkAgainstArc(factsFromReceipt(receivedReceipt()), await readingOf(chainWorld("RECEIVED")), ARC_TESTNET_NETWORK);
+  const status = statuses(checks);
+  for (const id of ["chain", "status", "transfers", "amount", "sender", "recipient", "payer", "usdc-decimals", "time"]) {
+    assert.equal(status[id], "MATCH", `${id}: ${byId(checks)[id]?.detail}`);
+  }
+  assert.equal(status.fee, "NOT_RECORDED", "the payer paid the fee; a received receipt records none");
+  assert.match(byId(checks).recipient.detail, /payee/);
+});
+
+test("from the public summary, a received payment matches everything but the wallets, which it does not name", async () => {
+  const facts = factsFromSummary(publicSummary(receivedReceipt()));
+  assert.equal(facts.kind, "RECEIVED");
+  const status = statuses(checkAgainstArc(facts, await readingOf(chainWorld("RECEIVED")), ARC_TESTNET_NETWORK));
+  assert.equal(status.amount, "MATCH");
+  assert.equal(status.recipient, "NOT_RECORDED");
+  assert.equal(status.payer, "NOT_RECORDED");
+});
+
+test("a received payment to another payee, from another payer, or of another amount is contradicted", async () => {
+  const reading = await readingOf(chainWorld("RECEIVED"));
+  const edited = (change) => factsFromReceipt(seal({ ...receivedCore(), received: { ...receivedCore().received, ...change } }));
+  assert.equal(statuses(checkAgainstArc(edited({ payee: TREASURY }), reading, ARC_TESTNET_NETWORK)).recipient, "MISMATCH");
+  assert.equal(statuses(checkAgainstArc(edited({ payer: BENEFICIARY }), reading, ARC_TESTNET_NETWORK)).payer, "MISMATCH");
+  assert.equal(statuses(checkAgainstArc(edited({ amount: "2", amountBaseUnits: "2000000" }), reading, ARC_TESTNET_NETWORK)).amount, "MISMATCH");
 });

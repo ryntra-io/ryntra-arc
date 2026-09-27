@@ -28,7 +28,7 @@ export type {
 export type Json = Record<string, unknown>;
 
 /** Every schema version a receipt may carry; each has its own hash contract. */
-export const RECEIPT_SCHEMA_VERSIONS = ["1.0.0", "1.1.0", "1.2.0", "1.3.0", "1.4.0", "1.5.0"] as const;
+export const RECEIPT_SCHEMA_VERSIONS = ["1.0.0", "1.1.0", "1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0"] as const;
 
 /** `int_…`, `rcpt_…`, `rcp_…` and any other `prefix_hex` identifier the product mints. */
 const RECORD_REF = /^[a-z][a-z0-9-]{1,23}_[0-9a-f]{16,64}$/;
@@ -84,7 +84,7 @@ export function referencesOf(record: Json): string[] {
  */
 export function chainRefOf(record: Json): string | null {
   const payoutChain = object(object(record.payout)?.chain);
-  const declared = text(payoutChain?.chainRef);
+  const declared = text(payoutChain?.chainRef) ?? text(object(record.received)?.chainRef);
   if (declared) return declared;
   const sourceRef = text(object(object(record.reconciliation)?.evidence)?.sourceRef);
   if (!sourceRef) return null;
@@ -176,6 +176,11 @@ export function publicSummary(record: Json) {
     : [];
 
   const kindDetail = publicReceiptDetail(record);
+  /* A received-payment receipt states its transaction, amount and time in its
+     own block: it has no execution or effects of its own, because the team
+     executed nothing. The hash is public on Arc already; the wallets are not
+     read from here. */
+  const received = object(record.received);
 
   return {
     receiptId: text(record.id),
@@ -188,9 +193,9 @@ export function publicSummary(record: Json) {
     operationRef: text(intent?.id),
     operationRevision: typeof intent?.revision === "number" ? intent.revision : null,
     chainRef: chainRefOf(record),
-    transactionHash: lowerHash(execution?.transactionHash),
-    explorerUrl: text(execution?.explorerUrl),
-    amountIn: text(actual?.amountIn),
+    transactionHash: lowerHash(execution?.transactionHash) ?? lowerHash(received?.transactionHash),
+    explorerUrl: text(execution?.explorerUrl) ?? text(received?.explorerUrl),
+    amountIn: text(actual?.amountIn) ?? text(received?.amount),
     amountOut: text(actual?.amountOut),
     feeAmount: text(actual?.feeAmount),
     expectedAmountIn: text(expected?.amountIn),
@@ -206,7 +211,7 @@ export function publicSummary(record: Json) {
        someone's organization and has no business on an anonymous lookup. */
     authorizationMethod: text(authorization?.method),
     authorizedAt: text(authorization?.createdAt),
-    observedAt: text(evidence?.observedAt),
+    observedAt: text(evidence?.observedAt) ?? text(received?.paidAt),
     observationProvider: text(evidence?.provider),
     observationStatus: text(evidence?.verificationStatus),
     createdAt: text(record.createdAt),

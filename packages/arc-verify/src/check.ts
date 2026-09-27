@@ -37,7 +37,7 @@ export type CheckStatus = "MATCH" | "MISMATCH" | "NOT_RECORDED";
 export type Check = Readonly<{ id: string; status: CheckStatus; detail: string }>;
 
 /** The kinds this package reads back from Arc. */
-export const CHECKED_KINDS: readonly ReceiptKind[] = ["TRANSFER", "PAYOUT", "SWAP"];
+export const CHECKED_KINDS: readonly ReceiptKind[] = ["TRANSFER", "PAYOUT", "SWAP", "RECEIVED"];
 
 export type PayoutFacts = Readonly<{
   amount: string | null;
@@ -58,6 +58,13 @@ export type SwapFacts = Readonly<{
   networkFee: string | null;
 }>;
 
+/** A payment a team received through its request: which asset, and — in the file only — both wallets. */
+export type ReceivedFacts = Readonly<{
+  asset: string | null;
+  payee: string | null;
+  payer: string | null;
+}>;
+
 /** What a receipt states that the chain can confirm or refute. */
 export type ReceiptFacts = Readonly<{
   source: "RECEIPT" | "PUBLIC_SUMMARY";
@@ -73,6 +80,7 @@ export type ReceiptFacts = Readonly<{
   finalizedAt: string | null;
   payout: PayoutFacts | null;
   swap: SwapFacts | null;
+  received: ReceivedFacts | null;
 }>;
 
 function integer(value: unknown): number | null {
@@ -85,7 +93,7 @@ function evmAddress(value: unknown): string | null {
 }
 
 function chainRefFromRecord(record: Json): string | null {
-  const declared = text(object(object(record.payout)?.chain)?.chainRef);
+  const declared = text(object(object(record.payout)?.chain)?.chainRef) ?? text(object(record.received)?.chainRef);
   if (declared) return declared;
   const sourceRef = text(object(object(record.reconciliation)?.evidence)?.sourceRef);
   const marker = sourceRef ? sourceRef.indexOf(":tx:") : -1;
@@ -98,13 +106,14 @@ export function factsFromReceipt(record: Json): ReceiptFacts {
   const payout = object(record.payout);
   const swap = object(record.swap);
   const provenance = object(payout?.provenance);
+  const received = object(record.received);
   return {
     source: "RECEIPT",
     kind: receiptKind(record),
     schemaVersion: text(record.schemaVersion),
     chainRef: chainRefFromRecord(record),
-    transactionHash: lowerHash(object(record.execution)?.transactionHash),
-    amountIn: text(actual?.amountIn),
+    transactionHash: lowerHash(object(record.execution)?.transactionHash) ?? lowerHash(received?.transactionHash),
+    amountIn: text(actual?.amountIn) ?? text(received?.amount),
     amountOut: text(actual?.amountOut),
     feeAmount: text(actual?.feeAmount),
     minimumAmountOut: text(swap?.authorizedMinimumAmountOut) ?? text(object(record.expectedEffects)?.minimumAmountOut),
@@ -130,10 +139,13 @@ export function factsFromReceipt(record: Json): ReceiptFacts {
           networkFee: text(object(swap.settledFees)?.networkAmount),
         }
       : null,
+    received: received
+      ? { asset: text(received.asset), payee: evmAddress(received.payee), payer: evmAddress(received.payer) }
+      : null,
   };
 }
 
-const KINDS: readonly ReceiptKind[] = ["TRANSFER", "SWAP", "PAYOUT", "BRIDGE", "UNKNOWN"];
+const KINDS: readonly ReceiptKind[] = ["TRANSFER", "SWAP", "PAYOUT", "BRIDGE", "RECEIVED", "UNKNOWN"];
 
 /** The facts a verifier's public summary states — never a wallet. */
 export function factsFromSummary(summary: Json): ReceiptFacts {
@@ -172,6 +184,8 @@ export function factsFromSummary(summary: Json): ReceiptFacts {
           networkFee: text(detail.settledNetworkFee),
         }
       : null,
+    /* The public summary never names a wallet: payee and payer are checked only from the file. */
+    received: kind === "RECEIVED" ? { asset: text(detail?.asset), payee: null, payer: null } : null,
   };
 }
 
@@ -294,6 +308,35 @@ function checkTransfer(facts: ReceiptFacts, reading: ArcTransactionReading, usdc
   const { checks } = checkSingleTransfer(reading, usdc, facts.amountIn);
   checks.push(notRecorded("recipient", "a transfer receipt records the amount and the transaction, not the recipient"));
   checks.push(...checkDecimals(reading, [usdc]));
+  return checks;
+}
+
+/**
+ * A payment a team received: one transfer of the requested asset, of the
+ * recorded amount, from the wallet that signed — and, when the receipt file is
+ * at hand, to the payee and from the payer it names.
+ */
+function checkReceived(facts: ReceiptFacts, reading: ArcTransactionReading, network: ArcNetwork): Check[] {
+  const tokens = circleTokens(network);
+  const asset = facts.received?.asset ?? "USDC";
+  const token = tokens.find((entry) => entry.symbol === asset);
+  if (!token) return [mismatch("asset", `${network.label} registers no ${asset}; the receipt records a payment in it`)];
+  const { checks, transfer } = checkSingleTransfer(reading, token, facts.amountIn);
+  const payee = facts.received?.payee ?? null;
+  const payer = facts.received?.payer ?? null;
+  if (transfer && payee) {
+    if (transfer.to === payee) checks.push(match("recipient", `the ${token.symbol} reached the payee the receipt names`));
+    else checks.push(mismatch("recipient", `the ${token.symbol} reached ${transfer.to}; the receipt names the payee ${payee}`));
+  } else if (transfer) {
+    checks.push(notRecorded("recipient", "the public summary does not name the payee; the receipt file does"));
+  }
+  if (payer) {
+    if (reading.from === payer) checks.push(match("payer", "the payer the receipt names signed the transaction"));
+    else checks.push(mismatch("payer", `the transaction was signed by ${reading.from}; the receipt names the payer ${payer}`));
+  } else {
+    checks.push(notRecorded("payer", "the public summary does not name the payer; the receipt file does"));
+  }
+  checks.push(...checkDecimals(reading, [token]));
   return checks;
 }
 
@@ -422,6 +465,7 @@ export function checkAgainstArc(facts: ReceiptFacts, reading: ArcTransactionRead
       : mismatch("status", "the transaction reverted; the receipt records a confirmed settlement"),
   );
   if (facts.kind === "PAYOUT") checks.push(...checkPayout(facts, reading, usdc));
+  else if (facts.kind === "RECEIVED") checks.push(...checkReceived(facts, reading, network));
   else if (isExchangeShaped(facts)) checks.push(...checkExchange(facts, reading, network));
   else checks.push(...checkTransfer(facts, reading, usdc));
   checks.push(checkFee(facts, reading));

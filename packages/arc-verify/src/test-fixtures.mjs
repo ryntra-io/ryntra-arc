@@ -235,6 +235,45 @@ export const payoutReceipt = () => seal(payoutCore());
 export const transferReceipt = () => seal(transferCore());
 export const swapReceipt = () => seal(swapCore());
 
+/**
+ * The 1 USDC transfer above, as the team that asked for it received it: a
+ * 1.6.0 received-payment receipt resting on that transfer's receipt. The
+ * payer is the wallet that signed, the payee the one the USDC reached.
+ */
+export function receivedCore() {
+  const source = transferReceipt();
+  return {
+    schemaVersion: "1.6.0",
+    id: "rcvd_00000000000000000000000000000004",
+    tenantId: "tenant_fixture_team",
+    createdAt: "2026-08-10T12:00:20.000Z",
+    finalizedAt: "2026-08-10T12:00:20.000Z",
+    received: {
+      requestId: "k3j9x2m7q8zt",
+      networkId: "arc-testnet",
+      chainRef: TESTNET,
+      asset: "USDC",
+      assetRef: `${TESTNET}/erc20:${USDC}`,
+      amount: "1",
+      amountBaseUnits: "1000000",
+      payee: BENEFICIARY,
+      payer: TREASURY,
+      purpose: "Design review",
+      reference: "INV-42",
+      requestedAt: "2026-08-10T11:59:00.000Z",
+      expiresAt: null,
+      paidAt: "2026-08-10T12:00:10.000Z",
+      transactionHash: TRANSFER_TX,
+      explorerUrl: `https://testnet.arcscan.app/tx/${TRANSFER_TX}`,
+      payerReceipt: { id: source.id, receiptHash: source.receiptHash },
+      matchedBy: "RYNTRA_GUARDED_SEND",
+    },
+    limitations: ["MATCHED_TO_THE_REQUEST_THROUGH_ITS_PAY_BUTTON", "RYNTRA_DID_NOT_SIGN_OR_BROADCAST", "NOT_LEGAL_OR_COMPLIANCE_PROOF", "ARC_PUBLIC_TESTNET_ONLY"],
+  };
+}
+
+export const receivedReceipt = () => seal(receivedCore());
+
 /** The body a Ryntra receipt verifier returns for a stored receipt, assembled as it assembles it. */
 export function verifierBody(receipt, receiptRef = receipt.id) {
   const outcome = checkSeal(receipt);
@@ -242,7 +281,7 @@ export function verifierBody(receipt, receiptRef = receipt.id) {
     receiptRef,
     checkedAt: "2026-08-10T12:30:00.000Z",
     supersessionModelled: false,
-    supportedKinds: ["TRANSFER", "SWAP", "PAYOUT", "BRIDGE"],
+    supportedKinds: ["TRANSFER", "SWAP", "PAYOUT", "BRIDGE", "RECEIVED"],
   };
   if (outcome.state !== "CHECKED") throw new Error("the fixture is not sealed");
   if (!outcome.intact) return { data: { ...envelope, verdict: "TAMPERED", kind: receiptKind(receipt), summary: null, integrity: outcome.report } };
@@ -275,6 +314,8 @@ export function chainWorld(kind) {
   const plan = {
     PAYOUT: { tx: PAYOUT_TX, to: USDC, gasUsed: 48_950, gasPrice: 25_200_000_000n, logs: transferLogs(USDC, TREASURY, BENEFICIARY, 1_000_000, 11) },
     TRANSFER: { tx: TRANSFER_TX, to: USDC, gasUsed: 73_950, gasPrice: 20_701_000_000n, logs: transferLogs(USDC, TREASURY, BENEFICIARY, 1_000_000, 11) },
+    /* A received payment is the same transaction, seen from the payee's side. */
+    RECEIVED: { tx: TRANSFER_TX, to: USDC, gasUsed: 73_950, gasPrice: 20_701_000_000n, logs: transferLogs(USDC, TREASURY, BENEFICIARY, 1_000_000, 11) },
     SWAP: {
       tx: SWAP_TX,
       to: ADAPTER,

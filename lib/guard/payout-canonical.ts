@@ -63,6 +63,11 @@ export const PAYOUT_HASH_DOMAINS = {
      comes from two ledgers; giving it either of the domains above would let
      a single-chain record be presented as a crosschain one. */
   bridgeReceipt: "ryntra:bridge-receipt:1.4.0",
+  /* A payment a team received through its request (Arc 11). The team decided
+     and approved nothing about the transfer, so the record says what was
+     received and rests on the payer's own receipt — and its domain keeps it
+     from ever being read as the operation that paid it. */
+  receivedPaymentReceipt: "ryntra:received-payment-receipt:1.6.0",
 } as const;
 
 export type PayoutHashDomain = (typeof PAYOUT_HASH_DOMAINS)[keyof typeof PAYOUT_HASH_DOMAINS];
@@ -115,6 +120,7 @@ export function hashDecisionSettlementReceiptCore(core: unknown): string {
     return hashPayoutRecord(PAYOUT_HASH_DOMAINS.splitCurrencySwapReceipt, core);
   }
   if (schemaVersion === "1.4.0") return hashPayoutRecord(PAYOUT_HASH_DOMAINS.bridgeReceipt, core);
+  if (schemaVersion === "1.6.0") return hashPayoutRecord(PAYOUT_HASH_DOMAINS.receivedPaymentReceipt, core);
   throw new TypeError("Unsupported decision settlement receipt schema version.");
 }
 

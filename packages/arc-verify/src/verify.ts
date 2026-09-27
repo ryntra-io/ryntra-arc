@@ -88,6 +88,7 @@ export type VerifyOptions = {
 
 function kindWord(facts: ReceiptFacts): string {
   if (facts.kind === "PAYOUT") return "payout";
+  if (facts.kind === "RECEIVED") return "received payment";
   if (isExchangeShaped(facts)) return "exchange";
   if (facts.kind === "TRANSFER") return "transfer";
   return "operation";

@@ -1,0 +1,218 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Ryntra received-payment receipt",
+  "description": "A receipt issued by Ryntra to the team that asked for a payment on Arc: what was received, in which asset, at which block, and the sealed settlement receipt of the payer's transfer it rests on. Version 1.6.0; its `receiptHash` is SHA-256 over the canonical core in the domain `ryntra:received-payment-receipt:1.6.0`, so it cannot be read as a transfer, a payout, an exchange or a crosschain receipt. The seals and the agreement with the payer's receipt cannot be written in JSON Schema; @ryntra/arc-verify recomputes the seals and reads the transaction on Arc.",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "1.6.0"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^rcvd_[0-9a-f]{32}$"
+    },
+    "tenantId": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 128
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+    },
+    "finalizedAt": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+    },
+    "received": {
+      "type": "object",
+      "properties": {
+        "requestId": {
+          "type": "string",
+          "pattern": "^[23456789abcdefghjkmnpqrstuvwxyz]{12}$"
+        },
+        "networkId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "chainRef": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 64
+        },
+        "asset": {
+          "type": "string",
+          "enum": [
+            "USDC",
+            "EURC"
+          ]
+        },
+        "assetRef": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 128
+        },
+        "amount": {
+          "type": "string",
+          "pattern": "^(?:0|[1-9]\\d{0,23})(?:\\.\\d{1,6})?$"
+        },
+        "amountBaseUnits": {
+          "type": "string",
+          "pattern": "^[1-9]\\d{0,30}$"
+        },
+        "payee": {
+          "type": "string",
+          "pattern": "^0x[0-9a-f]{40}$"
+        },
+        "payer": {
+          "type": "string",
+          "pattern": "^0x[0-9a-f]{40}$"
+        },
+        "purpose": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 80
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 32
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "requestedAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        },
+        "expiresAt": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "paidAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        },
+        "transactionHash": {
+          "type": "string",
+          "pattern": "^0x[0-9a-f]{64}$"
+        },
+        "explorerUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "payerReceipt": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 128
+            },
+            "receiptHash": {
+              "type": "string",
+              "pattern": "^0x[0-9a-f]{64}$"
+            }
+          },
+          "required": [
+            "id",
+            "receiptHash"
+          ],
+          "additionalProperties": false
+        },
+        "matchedBy": {
+          "type": "string",
+          "const": "RYNTRA_GUARDED_SEND"
+        }
+      },
+      "required": [
+        "requestId",
+        "networkId",
+        "chainRef",
+        "asset",
+        "assetRef",
+        "amount",
+        "amountBaseUnits",
+        "payee",
+        "payer",
+        "purpose",
+        "reference",
+        "requestedAt",
+        "expiresAt",
+        "paidAt",
+        "transactionHash",
+        "explorerUrl",
+        "payerReceipt",
+        "matchedBy"
+      ],
+      "additionalProperties": false
+    },
+    "limitations": {
+      "minItems": 1,
+      "maxItems": 16,
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 128
+      }
+    },
+    "receiptHash": {
+      "type": "string",
+      "pattern": "^0x[0-9a-f]{64}$"
+    },
+    "integrity": {
+      "type": "object",
+      "properties": {
+        "algorithm": {
+          "type": "string",
+          "const": "SHA-256"
+        },
+        "hash": {
+          "type": "string",
+          "pattern": "^0x[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "algorithm",
+        "hash"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "id",
+    "tenantId",
+    "createdAt",
+    "finalizedAt",
+    "received",
+    "limitations",
+    "receiptHash",
+    "integrity"
+  ],
+  "additionalProperties": false
+}

@@ -16,19 +16,20 @@
  * a registry entry, not a rewrite. What a registry entry is *not* is the
  * permission to move real money: mainnet is a `CANARY` network. It can be
  * selected only by a deployment that names it, and on that deployment every
- * send is still closed until the operator opens the kill switch, capped per
- * action by code, and limited to allowlisted wallets
- * (`lib/guard/arc-mainnet-canary.ts`). The registry is the mechanism; the gate
- * is the permission.
+ * new send is still closed until the operator opens the switch
+ * (`lib/guard/arc-mainnet-canary.ts`); since Arc 17 an open switch lets any
+ * wallet pay what its balance covers, with no list and no ceiling. The
+ * registry is the mechanism; the switch is the permission.
  */
 
 export type ArcNetworkStatus =
   /** Configured, verified and selectable. */
   | "ACTIVE"
   /**
-   * Configured from verified official sources and selectable by a deployment
-   * that names it, but value-moving actions stay behind the canary gate: a
-   * kill switch, a hard per-action cap and a sender allowlist.
+   * Configured from verified official sources and selectable only by a
+   * deployment that names it, where value-moving actions stay behind the
+   * operator's switch. The name is the first canary's; since Arc 17 the
+   * switch is the whole gate, with no cap and no list of wallets.
    */
   | "CANARY"
   /** Present in the model so the shape is real, but not selectable. */
@@ -209,7 +210,7 @@ export const ARC_MAINNET_NETWORK: ArcNetwork = {
   },
   carriesRealValue: true,
   gate:
-    "Arc Mainnet runs only on a deployment that selects it, and only as a canary (canon Gate D): sends stay closed until the operator opens the kill switch, each send is capped by code, only allowlisted wallets may send, and every send is reconciled against the chain before it gets a receipt. The App Kit swap is not offered on Arc Mainnet in this build. A network switch is not what makes mainnet safe.",
+    "Arc Mainnet runs only on a deployment that selects it (canon Gate D): new sends stay closed until the operator opens the switch; then any wallet may pay any amount its balance covers, every send is checked, simulated and screened before it is signed, and every send is reconciled against the chain before it gets a receipt. The App Kit swap is not offered on Arc Mainnet in this build. A network switch is not what makes mainnet safe.",
 };
 
 export const ARC_NETWORKS: readonly ArcNetwork[] = [ARC_TESTNET_NETWORK, ARC_MAINNET_NETWORK];
