@@ -8,11 +8,13 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 import { RECEIPT_SCHEMA_VERSIONS } from "./receipt.ts";
-import { payoutReceipt, receivedReceipt, swapReceipt, transferReceipt } from "./test-fixtures.mjs";
+import { bridgeReceipt, payoutReceipt, receivedReceipt, swapReceipt, transferReceipt } from "./test-fixtures.mjs";
 
 const schema = JSON.parse(await readFile(new URL("../schema/receipt.schema.json", import.meta.url), "utf8"));
 /* A received payment is its own record, with its own schema (1.6.0). */
 const receivedSchema = JSON.parse(await readFile(new URL("../schema/received-receipt.schema.json", import.meta.url), "utf8"));
+/* So is a transfer into or out of Arc (1.7.0). */
+const bridgeSchema = JSON.parse(await readFile(new URL("../schema/bridge-receipt.schema.json", import.meta.url), "utf8"));
 
 test("the schema is a closed JSON Schema 2020-12 object with a title", () => {
   assert.equal(schema.$schema, "https://json-schema.org/draft/2020-12/schema");
@@ -21,8 +23,23 @@ test("the schema is a closed JSON Schema 2020-12 object with a title", () => {
   assert.equal(schema.additionalProperties, false);
 });
 
-test("between them, the two schemas name every schema version this package can hash", () => {
-  assert.deepEqual([...schema.properties.schemaVersion.enum, receivedSchema.properties.schemaVersion.const], [...RECEIPT_SCHEMA_VERSIONS]);
+test("between them, the three schemas name every schema version this package can hash", () => {
+  assert.deepEqual(
+    [...schema.properties.schemaVersion.enum, receivedSchema.properties.schemaVersion.const, bridgeSchema.properties.schemaVersion.const],
+    [...RECEIPT_SCHEMA_VERSIONS],
+  );
+});
+
+test("the bridge schema is a closed JSON Schema 2020-12 object that requires both sides, the attestation and the anchor on Arc", () => {
+  assert.equal(bridgeSchema.$schema, "https://json-schema.org/draft/2020-12/schema");
+  assert.equal(bridgeSchema.title, "Ryntra bridge transfer receipt");
+  assert.equal(bridgeSchema.additionalProperties, false);
+  for (const member of ["schemaVersion", "id", "bridge", "execution", "actualEffects", "reconciliation", "finalizedAt", "receiptHash", "integrity"]) {
+    assert.ok(bridgeSchema.required.includes(member), member);
+  }
+  for (const member of ["source", "attestation", "destination", "amounts", "direction", "asset"]) {
+    assert.ok(bridgeSchema.properties.bridge.required.includes(member), member);
+  }
 });
 
 test("the received-payment schema is a closed JSON Schema 2020-12 object that requires what the seals and the chain checks read", () => {
@@ -69,4 +86,5 @@ test("each test receipt uses only members the schema declares, and every member 
     assert.deepEqual(undeclared(schema, receipt), [], receipt.schemaVersion);
   }
   assert.deepEqual(undeclared(receivedSchema, receivedReceipt()), [], "1.6.0");
+  assert.deepEqual(undeclared(bridgeSchema, bridgeReceipt()), [], "1.7.0");
 });

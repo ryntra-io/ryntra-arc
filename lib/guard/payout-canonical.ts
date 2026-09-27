@@ -68,6 +68,13 @@ export const PAYOUT_HASH_DOMAINS = {
      received and rests on the payer's own receipt — and its domain keeps it
      from ever being read as the operation that paid it. */
   receivedPaymentReceipt: "ryntra:received-payment-receipt:1.6.0",
+  /* A transfer into or out of Arc through Circle's CCTP (Arc 14): a burn on
+     one network, Circle's attestation and a mint on another, each read from
+     its own ledger. 1.4.0 recorded a planned bridge on Arc's testnet with one
+     side possibly unread; this record exists only when both sides were read,
+     names both chains, and is sealed under its own label so neither can be
+     presented as the other. */
+  bridgeTransferReceipt: "ryntra:bridge-transfer-receipt:1.7.0",
 } as const;
 
 export type PayoutHashDomain = (typeof PAYOUT_HASH_DOMAINS)[keyof typeof PAYOUT_HASH_DOMAINS];
@@ -121,6 +128,7 @@ export function hashDecisionSettlementReceiptCore(core: unknown): string {
   }
   if (schemaVersion === "1.4.0") return hashPayoutRecord(PAYOUT_HASH_DOMAINS.bridgeReceipt, core);
   if (schemaVersion === "1.6.0") return hashPayoutRecord(PAYOUT_HASH_DOMAINS.receivedPaymentReceipt, core);
+  if (schemaVersion === "1.7.0") return hashPayoutRecord(PAYOUT_HASH_DOMAINS.bridgeTransferReceipt, core);
   throw new TypeError("Unsupported decision settlement receipt schema version.");
 }
 

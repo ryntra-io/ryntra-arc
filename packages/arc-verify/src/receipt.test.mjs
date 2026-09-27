@@ -14,10 +14,22 @@ import {
   receiptPrivateValues,
   referencesOf,
 } from "./receipt.ts";
-import { BENEFICIARY, PAYOUT_TX, TREASURY, payoutReceipt, seal, swapReceipt, transferCore, transferReceipt } from "./test-fixtures.mjs";
+import {
+  BENEFICIARY,
+  BRIDGE_BURN_TX,
+  BRIDGE_MINT_TX,
+  PAYOUT_TX,
+  TREASURY,
+  bridgeReceipt,
+  payoutReceipt,
+  seal,
+  swapReceipt,
+  transferCore,
+  transferReceipt,
+} from "./test-fixtures.mjs";
 
 test("an intact receipt of every kind reseals to both recorded hashes", () => {
-  for (const receipt of [payoutReceipt(), transferReceipt(), swapReceipt()]) {
+  for (const receipt of [payoutReceipt(), transferReceipt(), swapReceipt(), bridgeReceipt()]) {
     const outcome = checkSeal(receipt);
     assert.equal(outcome.state, "CHECKED");
     assert.equal(outcome.intact, true, receipt.schemaVersion);
@@ -57,6 +69,16 @@ test("a receipt answers to its id, its operation, both seals and its transaction
   assert.deepEqual(referencesOf(receipt), [receipt.id, receipt.intent.id, receipt.receiptHash, receipt.integrity.hash, PAYOUT_TX]);
 });
 
+test("a transfer across networks answers to its burn and to its delivery, each once", () => {
+  const receipt = bridgeReceipt();
+  assert.deepEqual(referencesOf(receipt), [receipt.id, receipt.receiptHash, receipt.integrity.hash, BRIDGE_MINT_TX, BRIDGE_BURN_TX]);
+  /* The anchor is the mint on Arc: Arc's chain, read from the receipt. */
+  assert.equal(chainRefOf(receipt), "eip155:5042002");
+  const tampered = bridgeReceipt();
+  tampered.bridge = { ...tampered.bridge, amounts: { ...tampered.bridge.amounts, received: "4.990000" } };
+  assert.equal(checkSeal(tampered).intact, false);
+});
+
 test("a reference is normalized, and anything that cannot be one is refused before any lookup", () => {
   assert.equal(normalizeReceiptReference("  RCP_0000000000000000000000000000000A \n"), "rcp_0000000000000000000000000000000a");
   assert.equal(normalizeReceiptReference(PAYOUT_TX.toUpperCase().replace("0X", "0x")), PAYOUT_TX);
@@ -77,12 +99,15 @@ test("the kind comes from the schema version and the block together", () => {
   assert.equal(receiptKind(payoutReceipt()), "PAYOUT");
   assert.equal(receiptKind(transferReceipt()), "TRANSFER");
   assert.equal(receiptKind(swapReceipt()), "SWAP");
+  assert.equal(receiptKind(bridgeReceipt()), "BRIDGE");
+  const { bridge: _bridge, ...bridgeWithoutBlock } = bridgeReceipt();
+  assert.equal(receiptKind(bridgeWithoutBlock), "UNKNOWN");
   const { payout: _payout, ...withoutBlock } = payoutReceipt();
   assert.equal(receiptKind(withoutBlock), "UNKNOWN");
 });
 
 test("the public summary names no tenant, principal, evidence item or wallet", () => {
-  for (const receipt of [payoutReceipt(), transferReceipt(), swapReceipt()]) {
+  for (const receipt of [payoutReceipt(), transferReceipt(), swapReceipt(), bridgeReceipt()]) {
     const serialized = JSON.stringify(publicSummary(receipt));
     for (const secret of receiptPrivateValues(receipt)) assert.equal(serialized.includes(secret), false, secret);
     assert.equal(serialized.toLowerCase().includes(TREASURY), false);
@@ -107,4 +132,22 @@ test("the public summary of a payout carries its amounts, approvals, ceiling and
   assert.equal(summary.transactionHash, PAYOUT_TX);
   assert.equal(summary.feeAmount, "0.001234");
   assert.equal(summary.authorizationMethod, "PARTNER_AUTHENTICATED");
+});
+
+test("the public summary of a transfer into Arc carries both transactions, the route and the three amounts", () => {
+  const summary = publicSummary(bridgeReceipt());
+  assert.equal(summary.kind, "BRIDGE");
+  assert.equal(summary.transactionHash, BRIDGE_MINT_TX);
+  assert.equal(summary.amountIn, "5.000000");
+  assert.equal(summary.amountOut, "4.985000");
+  assert.equal(summary.feeAmount, "0.015000");
+  assert.equal(summary.detail.direction, "INTO_ARC");
+  assert.equal(summary.detail.asset, "USDC");
+  assert.equal(summary.detail.sourceLabel, "Base Sepolia");
+  assert.equal(summary.detail.destinationLabel, "Arc");
+  assert.equal(summary.detail.sourceTransactionHash, BRIDGE_BURN_TX);
+  assert.equal(summary.detail.destinationTransactionHash, BRIDGE_MINT_TX);
+  assert.equal(summary.detail.deliveredBy, "CIRCLE_FORWARDING_SERVICE");
+  assert.equal(summary.detail.sourceExplorerUrl, `https://sepolia.basescan.org/tx/${BRIDGE_BURN_TX}`);
+  assert.deepEqual(summary.detail.deviations, []);
 });

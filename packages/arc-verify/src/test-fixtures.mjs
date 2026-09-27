@@ -15,6 +15,8 @@ import { checkSeal, publicSummary, receiptKind } from "./receipt.ts";
 export const TREASURY = "0x1111111111111111111111111111111111111111";
 export const BENEFICIARY = "0x2222222222222222222222222222222222222222";
 export const ADAPTER = "0x3333333333333333333333333333333333333333";
+/** The token a transfer across networks burns on the other network — synthetic, like every wallet here. */
+export const SOURCE_TOKEN = "0x5555555555555555555555555555555555555555";
 export const USDC = "0x3600000000000000000000000000000000000000";
 export const EURC = "0x89b50855aa3be2f677cd6303cec089b5f319d72a";
 /** The address Arc's native-currency mirror events come from. */
@@ -273,6 +275,110 @@ export function receivedCore() {
 }
 
 export const receivedReceipt = () => seal(receivedCore());
+
+export const BRIDGE_BURN_TX = h("a4");
+export const BRIDGE_MINT_TX = h("a5");
+
+/**
+ * A 5 USDC top-up of Arc from Base Sepolia, as a 1.7.0 bridge receipt: the
+ * burn on Base Sepolia, Circle's attested message, the Forwarding Service's
+ * mint on Arc, and the 0.015 USDC Circle took for the delivery. The receipt's
+ * anchor is the mint, the transaction on Arc.
+ */
+export function bridgeCore() {
+  const burnPage = `https://sepolia.basescan.org/tx/${BRIDGE_BURN_TX}`;
+  const mintPage = `https://testnet.arcscan.app/tx/${BRIDGE_MINT_TX}`;
+  return {
+    schemaVersion: "1.7.0",
+    id: "rcpt_00000000000000000000000000000005",
+    tenantId: "tenant_example",
+    bridge: {
+      transferId: "brg_00000000000000000000000000000005",
+      direction: "INTO_ARC",
+      asset: "USDC",
+      protocol: "CCTP_V2",
+      speed: "FAST",
+      finalityThreshold: 1000,
+      arcSide: "DESTINATION",
+      source: {
+        label: "Base Sepolia",
+        chainRef: "eip155:84532",
+        domain: 6,
+        transactionHash: BRIDGE_BURN_TX,
+        explorerUrl: burnPage,
+        blockNumber: "1000",
+        token: SOURCE_TOKEN,
+        amount: "5.000000",
+        sender: TREASURY,
+        networkFee: "21000000000000",
+        networkFeeAsset: "ETH",
+      },
+      attestation: {
+        provider: "CIRCLE_IRIS",
+        status: "complete",
+        nonce: h("d1"),
+        finalityThresholdExecuted: 1000,
+        feeExecuted: "0.015000",
+        observedAt: "2026-08-10T12:00:08.000Z",
+      },
+      destination: {
+        label: "Arc",
+        chainRef: TESTNET,
+        domain: 26,
+        transactionHash: BRIDGE_MINT_TX,
+        explorerUrl: mintPage,
+        blockNumber: "2000",
+        token: USDC,
+        amount: "4.985000",
+        recipient: BENEFICIARY,
+        feeCollected: "0.015000",
+        deliveredBy: "CIRCLE_FORWARDING_SERVICE",
+      },
+      amounts: {
+        sent: "5.000000",
+        fee: "0.015000",
+        received: "4.985000",
+        maxFee: "0.015000",
+        receiveAtLeast: "4.985000",
+        nativeFee: "0",
+        nativeFeeAsset: "ETH",
+      },
+      plan: {
+        preparedAt: "2026-08-10T11:59:50.000Z",
+        expiresAt: "2026-08-10T12:09:50.000Z",
+        burnFingerprint: h("e1"),
+        burnCalldataHash: h("e2"),
+        feeSource: "CIRCLE_IRIS_FEES",
+        feeObservedAt: "2026-08-10T11:59:49.000Z",
+      },
+      deviations: [],
+    },
+    reconciliationStatus: "MATCHED",
+    expectedEffects: { amountIn: "5.000000", amountOut: "4.985000", feeAmount: "0.015000" },
+    actualEffects: { amountIn: "5.000000", amountOut: "4.985000", feeAmount: "0.015000" },
+    execution: { transactionHash: BRIDGE_MINT_TX, explorerUrl: mintPage },
+    reconciliation: {
+      status: "MATCHED",
+      evidence: {
+        provider: "CHAIN_READS_AND_CIRCLE_IRIS",
+        sourceRef: `${TESTNET}:tx:${BRIDGE_MINT_TX}`,
+        verificationStatus: "ONCHAIN_VERIFIED",
+        observedAt: "2026-08-10T12:00:10.000Z",
+      },
+    },
+    limitations: [
+      "RYNTRA_DID_NOT_SIGN_OR_BROADCAST",
+      "NOT_LEGAL_OR_COMPLIANCE_PROOF",
+      "CROSSCHAIN_TRANSPORT_PERFORMED_BY_CIRCLE_CCTP_NOT_BY_RYNTRA",
+      "OTHER_NETWORK_READ_THROUGH_PUBLIC_RPC",
+      "ARC_PUBLIC_TESTNET_ONLY",
+    ],
+    createdAt: "2026-08-10T12:00:02.000Z",
+    finalizedAt: "2026-08-10T12:00:10.000Z",
+  };
+}
+
+export const bridgeReceipt = () => seal(bridgeCore());
 
 /** The body a Ryntra receipt verifier returns for a stored receipt, assembled as it assembles it. */
 export function verifierBody(receipt, receiptRef = receipt.id) {

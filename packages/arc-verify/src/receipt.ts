@@ -28,7 +28,7 @@ export type {
 export type Json = Record<string, unknown>;
 
 /** Every schema version a receipt may carry; each has its own hash contract. */
-export const RECEIPT_SCHEMA_VERSIONS = ["1.0.0", "1.1.0", "1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0"] as const;
+export const RECEIPT_SCHEMA_VERSIONS = ["1.0.0", "1.1.0", "1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0"] as const;
 
 /** `int_…`, `rcpt_…`, `rcp_…` and any other `prefix_hex` identifier the product mints. */
 const RECORD_REF = /^[a-z][a-z0-9-]{1,23}_[0-9a-f]{16,64}$/;
@@ -59,18 +59,26 @@ export function normalizeReceiptReference(raw: string | null | undefined): strin
   return RECORD_REF.test(ref) || HASH_REF.test(ref) ? ref : null;
 }
 
-/** Every reference this record answers to. */
+/**
+ * Every reference this record answers to. A transfer across networks (1.7.0)
+ * also answers to its burn and its delivery — the two transactions a person
+ * holds — each on its own chain.
+ */
 export function referencesOf(record: Json): string[] {
   const execution = object(record.execution);
   const intent = object(record.intent);
   const integrity = object(record.integrity);
-  return [
+  const bridge = record.schemaVersion === "1.7.0" ? object(record.bridge) : null;
+  const references = [
     text(record.id),
     text(intent?.id),
     lowerHash(record.receiptHash),
     lowerHash(integrity?.hash),
     lowerHash(execution?.transactionHash),
+    lowerHash(object(bridge?.source)?.transactionHash),
+    lowerHash(object(bridge?.destination)?.transactionHash),
   ].filter((value): value is string => value !== null);
+  return [...new Set(references)];
 }
 
 /**

@@ -47,6 +47,8 @@ report.checks;  // [{ id: "amount", status: "MATCH", detail: "1.000000 USDC move
 | `src/verify.ts` | `verifyReceipt` — seal, verifier and chain together, and the verdict |
 | `src/cli.ts` | The command line |
 | `schema/receipt.schema.json` | The receipt as JSON Schema 2020-12, generated from the schema the product validates with |
+| `schema/received-receipt.schema.json` | A payment received into a team's wallet, as JSON Schema 2020-12 |
+| `schema/bridge-receipt.schema.json` | A transfer into or out of Arc through Circle's CCTP (receipt `1.7.0`): the burn on one network, Circle's attestation and the mint on the other, the amounts and the fee, as JSON Schema 2020-12 |
 
 ## Verdicts
 
@@ -61,6 +63,12 @@ report.checks;  // [{ id: "amount", status: "MATCH", detail: "1.000000 USDC move
   a kind this package does not read back from Arc.
 
 An unknown is never promoted to a success.
+
+A transfer into or out of Arc (`1.7.0`) is sealed under its own label, so it
+can never be read as a transfer or a payout. This package recomputes its seals
+and asks the verifier; it does not yet read its two networks back itself, so
+its verdict stops at `INCOMPLETE` — the burn and the mint are linked from the
+receipt for anyone to open.
 
 ## Tests
 

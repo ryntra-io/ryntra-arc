@@ -67,7 +67,9 @@ export function receiptKind(record: Json): ReceiptKind {
      `lib/guard/arc-received-receipt.ts`): its own record, resting on the
      payer's transfer receipt. */
   if (version === "1.6.0" && object(record.received)) return "RECEIVED";
-  if (version === "1.4.0" && object(record.bridge)) return "BRIDGE";
+  /* 1.4.0 is a planned bridge on Arc's testnet; 1.7.0 a transfer into or out
+     of Arc read on both chains (Arc 14, `lib/arc/bridge/receipt.ts`). */
+  if ((version === "1.4.0" || version === "1.7.0") && object(record.bridge)) return "BRIDGE";
   if (version === "1.3.0" && object(record.swap)) return "SWAP";
   if (version === "1.2.0" && object(record.payout)) return "PAYOUT";
   if (version === "1.0.0" || version === "1.1.0") return "TRANSFER";
@@ -131,6 +133,13 @@ export type PublicBridgeDetail = Readonly<{
   whereTheValueIs: string | null;
   fundsAtRest: boolean | null;
   deviations: readonly string[];
+  /* Transfers into and out of Arc (1.7.0) say which way, which asset and who
+     delivered; null on the testnet's planned bridge (1.4.0). */
+  direction: string | null;
+  asset: string | null;
+  deliveredBy: string | null;
+  sourceExplorerUrl: string | null;
+  destinationExplorerUrl: string | null;
 }>;
 
 export type PublicReceivedDetail = Readonly<{
@@ -208,6 +217,56 @@ export function publicReceiptDetail(record: Json): PublicReceiptDetail {
     };
   }
 
+  if (kind === "BRIDGE" && text(record.schemaVersion) === "1.7.0") {
+    /* A transfer read on both chains. The sender and the recipient are wallet
+       addresses and stay out, as every kind's wallets do; the two transactions
+       are public on their chains and are the point of the receipt. */
+    const bridge = object(record.bridge) ?? {};
+    const source = object(bridge.source) ?? {};
+    const destination = object(bridge.destination) ?? {};
+    const attestation = object(bridge.attestation) ?? {};
+    const amounts = object(bridge.amounts) ?? {};
+    const plan = object(bridge.plan) ?? {};
+    const deviations = strings(bridge.deviations);
+    return {
+      kind,
+      detail: {
+        protocol: text(bridge.protocol),
+        sourceLabel: text(source.label),
+        sourceDomain: integer(source.domain),
+        destinationLabel: text(destination.label),
+        destinationDomain: integer(destination.domain),
+        speed: text(bridge.speed),
+        finalityThreshold: integer(bridge.finalityThreshold),
+        sourceTransactionHash: text(source.transactionHash),
+        attestationStatus: text(attestation.status),
+        attestationObservedAt: text(attestation.observedAt),
+        destinationEvidenceKind: "CHAIN_RECEIPT",
+        destinationTransactionHash: text(destination.transactionHash),
+        destinationAbsentReason: null,
+        authorized: text(amounts.sent),
+        sourceDebited: text(amounts.sent),
+        destinationCredited: text(amounts.received),
+        transportCost: text(amounts.fee),
+        authorizedMaxFee: text(amounts.maxFee),
+        quotedTransportFee: text(amounts.maxFee),
+        quotedTransportFeeSource: text(plan.feeSource),
+        /* Paid in the source network's own coin, not in the asset: not a figure to set beside the amounts. */
+        sourceNetworkFee: null,
+        elapsedMs: null,
+        lifecycleState: "RECEIPT_ISSUED",
+        whereTheValueIs: "DESTINATION_WALLET",
+        fundsAtRest: true,
+        deviations,
+        direction: text(bridge.direction),
+        asset: text(bridge.asset),
+        deliveredBy: text(destination.deliveredBy),
+        sourceExplorerUrl: text(source.explorerUrl),
+        destinationExplorerUrl: text(destination.explorerUrl),
+      },
+    };
+  }
+
   if (kind === "BRIDGE") {
     const bridge = object(record.bridge) ?? {};
     const source = object(bridge.source) ?? {};
@@ -247,6 +306,11 @@ export function publicReceiptDetail(record: Json): PublicReceiptDetail {
         whereTheValueIs: text(recovery.whereTheValueIs),
         fundsAtRest: bool(recovery.fundsAtRest),
         deviations: strings(bridge.deviations),
+        direction: null,
+        asset: null,
+        deliveredBy: null,
+        sourceExplorerUrl: null,
+        destinationExplorerUrl: null,
       },
     };
   }
@@ -286,7 +350,11 @@ export function receiptPrivateValues(record: Json): readonly string[] {
   const authorization = object(record.authorization) ?? {};
   const evidence = object(record.evidence) ?? {};
   const received = object(record.received) ?? {};
+  const bridge = object(record.bridge) ?? {};
   return [
+    /* A transfer's two wallets (1.7.0). */
+    text(object(bridge.source)?.sender),
+    text(object(bridge.destination)?.recipient),
     text(received.payee),
     text(received.payer),
     text(received.requestId),

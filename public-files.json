@@ -34,6 +34,10 @@
       "role": "package_metadata"
     },
     {
+      "path": "packages/arc-verify/schema/bridge-receipt.schema.json",
+      "role": "published_schema"
+    },
+    {
       "path": "packages/arc-verify/schema/receipt.schema.json",
       "role": "published_schema"
     },
