@@ -1,5 +1,15 @@
 # Ryntra Guard build log
 
+## 2026-09-30 — App access without IP geography filtering
+
+The app no longer filters its pages, APIs or swap and bridge choices by the
+visitor's IP country or region. This also removes the app's additional
+country filter for Circle services.
+
+Provider availability and responses still determine which routes can be
+used. Address screening, wallet authorization, balance and transaction
+checks remain in place.
+
 ## 2026-09-29 — Swap and bridge with wallet balances
 
 [Swap](https://arc.ryntra.io/app/swap) and [Bridge](https://arc.ryntra.io/app/bridge)
