@@ -62,7 +62,25 @@ export type SwapRouteFacts = Readonly<{
   tokenOut: RouteToken;
   /** Ryntra's fee as collected, in its token; null when the receipt states no fee. */
   fee: Readonly<{ amount: string; token: RouteToken }> | null;
+  /**
+   * Ryntra's fee is kept by the provider and credited to Ryntra off-chain (a
+   * Relay swap's app fee): there is no Transfer of it in the transaction to
+   * hold the receipt against.
+   */
+  feeAtProvider?: boolean;
+  /** The receipt says the provider kept Ryntra's fee, but names a provider or contract that does not: held as a mismatch. */
+  feeLandingUnproven?: string | null;
 }>;
+
+/** Relay's v3 approval proxy on Arc: the only contract a swap whose fee Relay keeps may have called. */
+export const RELAY_SWAP_PROXY_ON_ARC = "0xccc88a9d1b4ed6b0eaba998850414b24f1c315be";
+
+/** Whether a provider may keep Ryntra's fee off-chain: Relay, through its proxy — nothing else. */
+function providerKeepsFee(provider: string | null, router: string | null): string | null {
+  if (provider !== "RELAY") return `the receipt says the provider kept Ryntra's fee, but names ${provider ?? "no provider"}, which pays it in the transaction`;
+  if (router !== RELAY_SWAP_PROXY_ON_ARC) return `the receipt says Relay kept Ryntra's fee, but names ${router ?? "no contract"}, not Relay's proxy`;
+  return null;
+}
 
 export type SwapFacts = Readonly<{
   sellAssetRef: string | null;
@@ -128,6 +146,10 @@ function swapRouteFacts(swap: Json): SwapRouteFacts | null {
   const actual = object(fee?.actual);
   const feeToken = text(fee?.side) === "OUT" ? tokenOut : tokenIn;
   const amount = text(actual?.amount);
+  if (fee && text(fee.landing) === "PROVIDER_BALANCE") {
+    const router = evmAddress(object(swap.provider)?.router);
+    return { router, tokenIn, tokenOut, fee: null, feeAtProvider: true, feeLandingUnproven: providerKeepsFee(text(object(swap.provider)?.name), router) };
+  }
   return {
     router: evmAddress(object(swap.provider)?.router),
     tokenIn,
@@ -254,6 +276,10 @@ function summaryRouteFacts(detail: Json): SwapRouteFacts | null {
   const tokenIn = token("tokenIn");
   const tokenOut = token("tokenOut");
   if (!tokenIn || !tokenOut) return null;
+  if (text(detail.ryntraFeeLanding) === "PROVIDER_BALANCE") {
+    const router = evmAddress(detail.router);
+    return { router, tokenIn, tokenOut, fee: null, feeAtProvider: true, feeLandingUnproven: providerKeepsFee(text(detail.provider), router) };
+  }
   /* «0.1 USDC»: the amount, then its asset. */
   const actual = text(detail.ryntraFeeActual)?.split(" ")[0] ?? null;
   return {
@@ -532,7 +558,8 @@ function flowOf(reading: ArcTransactionReading, address: string, wallet: string)
  * A swap through an aggregator's router (1.9.0): the router the receipt names
  * was called, what left the signing wallet and what reached it are the
  * recorded amounts, at least the signed floor arrived, and Ryntra's fee is a
- * Transfer of exactly the recorded amount in the same transaction.
+ * Transfer of exactly the recorded amount in the same transaction — or, when
+ * the provider keeps it and credits Ryntra off-chain (Relay), said to be so.
  */
 function checkRouteSwap(facts: ReceiptFacts, reading: ArcTransactionReading, network: ArcNetwork, route: SwapRouteFacts): Check[] {
   const checks: Check[] = [];
@@ -558,7 +585,11 @@ function checkRouteSwap(facts: ReceiptFacts, reading: ArcTransactionReading, net
   else if (bought >= minimum) checks.push(match("minimum", `at least the signed floor of ${facts.minimumAmountOut} ${route.tokenOut.symbol} arrived`));
   else checks.push(mismatch("minimum", `${boughtShown} arrived, below the signed floor of ${facts.minimumAmountOut} ${route.tokenOut.symbol}`));
 
-  if (route.fee === null) {
+  if (route.feeAtProvider && route.feeLandingUnproven) {
+    checks.push(mismatch("ryntra-fee", route.feeLandingUnproven));
+  } else if (route.feeAtProvider) {
+    checks.push(notRecorded("ryntra-fee", "the provider keeps Ryntra's fee and credits it off-chain; there is no Transfer of it in this transaction to check"));
+  } else if (route.fee === null) {
     checks.push(notRecorded("ryntra-fee", "the receipt states no fee of Ryntra's"));
   } else if (toBaseUnits(route.fee.amount, route.fee.token.decimals) === 0n) {
     /* The receipt itself says the fee was not collected: there is no Transfer to look for. */

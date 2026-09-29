@@ -469,6 +469,39 @@ export function swapRouteCore() {
 
 export const swapRouteReceipt = () => seal(swapRouteCore());
 
+/** Relay's v3 approval proxy on Arc: the contract a Relay swap calls. */
+export const RELAY_PROXY = "0xccc88a9d1b4ed6b0eaba998850414b24f1c315be";
+
+/* The same swap through Relay (Arc 66): Relay keeps Ryntra's fee inside its
+   own and credits it off-chain, so the receipt says where the fee landed and
+   what Relay itself took. */
+export function relaySwapRouteCore() {
+  const core = swapRouteCore();
+  core.swap.provider = { name: "RELAY", reference: h("17"), router: RELAY_PROXY, exchanges: ["0x"] };
+  core.swap.quote.source = "RELAY_QUOTE_V2";
+  core.swap.ryntraFee = {
+    bps: 10,
+    side: "IN",
+    mechanism: "RELAY_APP_FEE",
+    landing: "PROVIDER_BALANCE",
+    quoted: { amount: "0.1", asset: "USDC", usd: "0.1" },
+    actual: { amount: "0.1", asset: "USDC", usd: "0.1" },
+    state: "ACCRUED_AT_PROVIDER",
+    evidence: `RELAY_REQUESTS_V2:${h("17")}`,
+  };
+  core.swap.providerFee = { amount: "0.15", asset: "USDC", usd: "0.15" };
+  core.limitations = [
+    "RYNTRA_DID_NOT_SIGN_OR_BROADCAST",
+    "NOT_LEGAL_OR_COMPLIANCE_PROOF",
+    "SWAP_EXECUTED_BY_THE_NAMED_PROVIDER_NOT_BY_RYNTRA",
+    "RYNTRA_FEE_CREDITED_OFF_CHAIN_BY_THE_PROVIDER",
+    "ARC_MAINNET",
+  ];
+  return core;
+}
+
+export const relaySwapRouteReceipt = () => seal(relaySwapRouteCore());
+
 /* ------------------------------------------------------------------ *
  * What an Arc endpoint answers
  * ------------------------------------------------------------------ */

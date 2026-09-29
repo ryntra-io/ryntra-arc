@@ -30,6 +30,9 @@ import {
   seal,
   swapCore,
   swapReceipt,
+  RELAY_PROXY,
+  relaySwapRouteCore,
+  relaySwapRouteReceipt,
   swapRouteCore,
   swapRouteReceipt,
   transferCore,
@@ -260,6 +263,35 @@ test("from its public summary, a swap through a router is checked the same way, 
   assert.equal(facts.swap.route.router, swapRouteCore().swap.provider.router);
   const checks = statuses(checkAgainstArc(facts, await readingOf(chainWorld("SWAP_ROUTE"), ARC_MAINNET_NETWORK), ARC_MAINNET_NETWORK));
   for (const id of ["router", "sold", "bought", "minimum", "ryntra-fee", "fee"]) assert.equal(checks[id], "MATCH", id);
+});
+
+test("a Relay swap is confirmed on what the chain can show; Ryntra's fee kept by Relay is said to be off-chain, never read as missing", async () => {
+  /* The same transaction, sent to Relay's proxy. */
+  const reading = { ...(await readingOf(chainWorld("SWAP_ROUTE"), ARC_MAINNET_NETWORK)), to: RELAY_PROXY };
+  for (const facts of [factsFromReceipt(relaySwapRouteReceipt()), factsFromSummary(publicSummary(relaySwapRouteReceipt()))]) {
+    assert.equal(facts.swap.route.feeAtProvider, true);
+    const checks = checkAgainstArc(facts, reading, ARC_MAINNET_NETWORK);
+    const status = statuses(checks);
+    for (const id of ["router", "sold", "bought", "minimum"]) assert.equal(status[id], "MATCH", id);
+    assert.equal(status["ryntra-fee"], "NOT_RECORDED");
+    assert.match(byId(checks)["ryntra-fee"].detail, /credits it off-chain/);
+    assert.equal(checks.some((check) => check.status === "MISMATCH"), false);
+  }
+  /* The same receipt claiming the fee landed in the transaction is held to a Transfer that is not there. */
+  const core = relaySwapRouteCore();
+  core.swap.ryntraFee.landing = "SAME_TRANSACTION";
+  core.swap.ryntraFee.actual.amount = "0.3";
+  assert.equal(statuses(checkAgainstArc(factsFromReceipt(seal(core)), reading, ARC_MAINNET_NETWORK))["ryntra-fee"], "MISMATCH");
+  assert.equal(publicSummary(relaySwapRouteReceipt()).detail.providerFeeQuoted, "0.15 USDC");
+  /* «Kept by the provider» holds only for Relay through its proxy: any other provider or contract is contradicted. */
+  const kyber = relaySwapRouteCore();
+  kyber.swap.provider.name = "KYBERSWAP";
+  assert.equal(statuses(checkAgainstArc(factsFromReceipt(seal(kyber)), reading, ARC_MAINNET_NETWORK))["ryntra-fee"], "MISMATCH");
+  const elsewhere = relaySwapRouteCore();
+  elsewhere.swap.provider.router = "0x9999999999999999999999999999999999999999";
+  const moved = statuses(checkAgainstArc(factsFromReceipt(seal(elsewhere)), { ...reading, to: "0x9999999999999999999999999999999999999999" }, ARC_MAINNET_NETWORK));
+  assert.equal(moved["ryntra-fee"], "MISMATCH");
+  assert.equal(publicSummary(relaySwapRouteReceipt()).detail.ryntraFeeLanding, "PROVIDER_BALANCE");
 });
 
 test("a swap that called another contract, paid out less, fell under its floor or never paid Ryntra's fee is contradicted", async () => {

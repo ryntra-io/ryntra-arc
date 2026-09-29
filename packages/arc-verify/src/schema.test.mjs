@@ -8,7 +8,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 import { RECEIPT_SCHEMA_VERSIONS } from "./receipt.ts";
-import { bridgeReceipt, payoutReceipt, receivedReceipt, swapReceipt, swapRouteReceipt, transferReceipt } from "./test-fixtures.mjs";
+import { bridgeReceipt, payoutReceipt, receivedReceipt, relaySwapRouteReceipt, swapReceipt, swapRouteReceipt, transferReceipt } from "./test-fixtures.mjs";
 
 const schema = JSON.parse(await readFile(new URL("../schema/receipt.schema.json", import.meta.url), "utf8"));
 /* A received payment is its own record, with its own schema (1.6.0). */
@@ -122,4 +122,5 @@ test("each test receipt uses only members the schema declares, and every member 
   assert.deepEqual(undeclared(receivedSchema, receivedReceipt()), [], "1.6.0");
   assert.deepEqual(undeclared(bridgeSchema, bridgeReceipt()), [], "1.7.0");
   assert.deepEqual(undeclared(swapSchema, swapRouteReceipt()), [], "1.9.0");
+  assert.deepEqual(undeclared(swapSchema, relaySwapRouteReceipt()), [], "1.9.0 through Relay");
 });

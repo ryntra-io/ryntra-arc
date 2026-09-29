@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.6.0] — 2026-09-29
+
+- Receipt 1.9.0 names a second provider: a swap on Arc through Relay (Relay's
+  approval proxy and router, the swap itself through 0x's Settler). Its
+  quote's source is `RELAY_QUOTE_V2`, and Ryntra's fee is Relay's app fee:
+  `mechanism` `RELAY_APP_FEE`, `landing` `PROVIDER_BALANCE`, `state`
+  `ACCRUED_AT_PROVIDER` when Relay's own record of the swap says it credited
+  it. What Relay itself took is a line of its own, `swap.providerFee`, absent
+  when the provider takes nothing. Every 1.9.0 receipt through KyberSwap reads
+  and verifies as before.
+- `checkAgainstArc` holds a Relay swap to everything the chain shows — the
+  contract called, what left and what reached the signing wallet, the signed
+  floor, the network fee — and states Ryntra's fee as `NOT_RECORDED`: kept by
+  the provider and credited off-chain, there is no Transfer of it in the
+  transaction to check. It is never read as a missing Transfer.
+- The public summary of a 1.9.0 swap says where Ryntra's fee landed
+  (`ryntraFeeLanding`) and what the provider's own fee was
+  (`providerFeeQuoted`).
+
 ## [0.5.0] — 2026-09-29
 
 - Receipt 1.9.0: a swap on Arc through an aggregator's router. It records

@@ -1,6 +1,6 @@
 {
   "name": "@ryntra/arc-verify",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "private": true,
   "type": "module",
   "description": "Check a Ryntra settlement receipt yourself: the receipt schema, its canonical serialization and both seals, and the transfer, payout or USDC/EURC exchange it records read back from Arc over public JSON-RPC. Read-only; no keys, no signing.",

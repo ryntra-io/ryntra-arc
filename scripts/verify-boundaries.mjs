@@ -83,14 +83,17 @@ const signingShaped = /\b(?:eth_send\w*|eth_sign\w*|personal_sign|signTypedData|
 
 /**
  * No wallet ships. An EVM address in a shipped file is either a Circle token
- * contract or Arc system address named below, or a synthetic test address —
- * one hex digit repeated forty times.
+ * contract, an Arc system address or a provider contract the verifier pins,
+ * named below, or a synthetic test address — one hex digit repeated forty
+ * times.
  */
 const publicAddresses = new Set([
   "0x3600000000000000000000000000000000000000",
   "0x89b50855aa3be2f677cd6303cec089b5f319d72a",
   "0xbef5f6d51cb62b58e6a8f77868681825c6fe21c1",
   "0xfffffffffffffffffffffffffffffffffffffffe",
+  /* Relay's v3 ApprovalProxy (docs.relay.link, contract addresses): a swap whose fee Relay keeps was sent to it. */
+  "0xccc88a9d1b4ed6b0eaba998850414b24f1c315be",
 ]);
 const synthetic = /^0x([0-9a-f])\1{39}$/;
 const evmAddress = /(?<![0-9a-fA-Fx])0x[0-9a-fA-F]{40}(?![0-9a-fA-F])/g;

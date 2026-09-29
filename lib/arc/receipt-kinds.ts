@@ -117,6 +117,10 @@ export type PublicSwapDetail = Readonly<{
   ryntraFeeQuoted: string | null;
   ryntraFeeActual: string | null;
   ryntraFeeState: string | null;
+  /* Where Ryntra's fee lands: in the swap's own transaction, or the provider's balance for Ryntra (Arc 66). */
+  ryntraFeeLanding: string | null;
+  /* What the provider itself took, as its quote stated it (Relay); null when it takes nothing. */
+  providerFeeQuoted: string | null;
 }>;
 
 export type PublicPayoutDetail = Readonly<{
@@ -263,6 +267,8 @@ export function publicReceiptDetail(record: Json): PublicReceiptDetail {
         ryntraFeeQuoted: amountOf(quoted),
         ryntraFeeActual: amountOf(actual),
         ryntraFeeState: text(fee?.state),
+        ryntraFeeLanding: text(fee?.landing),
+        providerFeeQuoted: amountOf(object(swap.providerFee) ?? {}),
       },
     };
   }
@@ -308,6 +314,8 @@ export function publicReceiptDetail(record: Json): PublicReceiptDetail {
         ryntraFeeQuoted: null,
         ryntraFeeActual: null,
         ryntraFeeState: null,
+        ryntraFeeLanding: null,
+        providerFeeQuoted: null,
       },
     };
   }
