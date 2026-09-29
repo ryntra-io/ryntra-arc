@@ -96,6 +96,12 @@ export const PAYOUT_HASH_DOMAINS = {
      names both chains, and is sealed under its own label so neither can be
      presented as the other. */
   bridgeTransferReceipt: "ryntra:bridge-transfer-receipt:1.7.0",
+  /* A route across networks on any rail the Arc bridge offers — Relay,
+     Across, or Circle's bridge with the integrator's fee (Arc 44): both sides
+     read, the quote at signing, and the integrator's fee as its own line. Its
+     own label, so a CCTP transfer receipt (1.7.0) and a route receipt can
+     never be presented as each other. */
+  bridgeRouteReceipt: "ryntra:bridge-route-receipt:1.8.0",
 } as const;
 
 export type PayoutHashDomain = (typeof PAYOUT_HASH_DOMAINS)[keyof typeof PAYOUT_HASH_DOMAINS];
@@ -150,6 +156,7 @@ export function hashDecisionSettlementReceiptCore(core: unknown): string {
   if (schemaVersion === "1.4.0") return hashPayoutRecord(PAYOUT_HASH_DOMAINS.bridgeReceipt, core);
   if (schemaVersion === "1.6.0") return hashPayoutRecord(PAYOUT_HASH_DOMAINS.receivedPaymentReceipt, core);
   if (schemaVersion === "1.7.0") return hashPayoutRecord(PAYOUT_HASH_DOMAINS.bridgeTransferReceipt, core);
+  if (schemaVersion === "1.8.0") return hashPayoutRecord(PAYOUT_HASH_DOMAINS.bridgeRouteReceipt, core);
   throw new TypeError("Unsupported decision settlement receipt schema version.");
 }
 

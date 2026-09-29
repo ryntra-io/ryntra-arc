@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.4.0] — 2026-09-29
+
+- Receipt 1.8.0: a route across networks on any rail the Ryntra bridge offers
+  — Relay, Across, or Circle's bridge with the integrator's fee. It records
+  what left on one network and what arrived on the other, each read from its
+  own chain (a network Ryntra does not read is marked as reported by the
+  provider), the quote at signing beside the actual amounts, and the
+  integrator's fee as its own line: the rate, how it is collected, what was
+  quoted and what was actually collected, and where that was read. Sealed
+  under its own hash domain, `ryntra:bridge-route-receipt:1.8.0`; it ships as
+  `schema/route-receipt.schema.json`.
+- A route receipt answers to its own id, both seals, the transaction on Arc
+  and both sides' transactions; `publicSummary` names the rail and the fee's
+  state and never a wallet address.
+- Nothing that 1.0.0–1.7.0 receipts verify changes.
+
 ## [0.3.1] — 2026-09-29
 
 - The hash domains of every receipt version — the received-payment receipt

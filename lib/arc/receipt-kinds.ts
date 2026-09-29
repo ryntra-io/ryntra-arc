@@ -70,6 +70,8 @@ export function receiptKind(record: Json): ReceiptKind {
   /* 1.4.0 is a planned bridge on Arc's testnet; 1.7.0 a transfer into or out
      of Arc read on both chains (Arc 14, `lib/arc/bridge/receipt.ts`). */
   if ((version === "1.4.0" || version === "1.7.0") && object(record.bridge)) return "BRIDGE";
+  /* 1.8.0 is a route on any of the bridge's rails, with our fee as its own line (Arc 44). */
+  if (version === "1.8.0" && object(record.route)) return "BRIDGE";
   if (version === "1.3.0" && object(record.swap)) return "SWAP";
   if (version === "1.2.0" && object(record.payout)) return "PAYOUT";
   if (version === "1.0.0" || version === "1.1.0") return "TRANSFER";
@@ -140,6 +142,19 @@ export type PublicBridgeDetail = Readonly<{
   deliveredBy: string | null;
   sourceExplorerUrl: string | null;
   destinationExplorerUrl: string | null;
+  /* A route (1.8.0) names its rail, what the quote promised, and Ryntra's fee
+     as its own line; null on 1.4.0 and 1.7.0. */
+  rail: string | null;
+  quotedReceive: string | null;
+  ryntraFee: Readonly<{
+    bps: number | null;
+    mechanism: string | null;
+    state: string | null;
+    quoted: string | null;
+    actual: string | null;
+    asset: string | null;
+    evidence: string | null;
+  }> | null;
 }>;
 
 export type PublicReceivedDetail = Readonly<{
@@ -217,6 +232,72 @@ export function publicReceiptDetail(record: Json): PublicReceiptDetail {
     };
   }
 
+  if (kind === "BRIDGE" && text(record.schemaVersion) === "1.8.0") {
+    /* A route on one of the bridge's rails (Arc 44). The wallets stay out, as
+       every kind's do; the two transactions, the rail and our fee as its own
+       line are the point of the receipt. */
+    const route = object(record.route) ?? {};
+    const source = object(route.source) ?? {};
+    const destination = object(route.destination) ?? {};
+    const attestation = object(route.attestation) ?? {};
+    const quote = object(route.quote) ?? {};
+    const provider = object(route.provider) ?? {};
+    const providerFee = object(route.providerFee) ?? {};
+    const fee = object(route.ryntraFee);
+    const quoted = object(fee?.quoted) ?? {};
+    const actual = object(fee?.actual) ?? {};
+    const actualFx = object(record.actualEffects) ?? {};
+    return {
+      kind,
+      detail: {
+        protocol: text(provider.name),
+        sourceLabel: text(source.label),
+        sourceDomain: null,
+        destinationLabel: text(destination.label),
+        destinationDomain: null,
+        speed: null,
+        finalityThreshold: integer(attestation.finalityThresholdExecuted),
+        sourceTransactionHash: text(source.transactionHash),
+        attestationStatus: object(route.attestation) ? "complete" : null,
+        attestationObservedAt: text(attestation.observedAt),
+        destinationEvidenceKind: "CHAIN_RECEIPT",
+        destinationTransactionHash: text(destination.transactionHash),
+        destinationAbsentReason: null,
+        authorized: text(source.amount),
+        sourceDebited: text(source.amount),
+        destinationCredited: text(destination.amount),
+        transportCost: text(actualFx.feeAmount),
+        authorizedMaxFee: null,
+        quotedTransportFee: text(providerFee.amount) ?? text(providerFee.usd),
+        quotedTransportFeeSource: text(quote.source),
+        sourceNetworkFee: null,
+        elapsedMs: null,
+        lifecycleState: "RECEIPT_ISSUED",
+        whereTheValueIs: "DESTINATION_WALLET",
+        fundsAtRest: true,
+        deviations: strings(route.deviations),
+        direction: text(route.direction),
+        asset: text(object(destination.token)?.symbol),
+        deliveredBy: text(provider.name),
+        sourceExplorerUrl: text(source.explorerUrl),
+        destinationExplorerUrl: text(destination.explorerUrl),
+        rail: text(route.rail),
+        quotedReceive: text(quote.expectedOut),
+        ryntraFee: fee
+          ? {
+              bps: integer(fee.bps),
+              mechanism: text(fee.mechanism),
+              state: text(fee.state),
+              quoted: text(quoted.amount) ?? text(quoted.usd),
+              actual: text(actual.amount) ?? text(actual.usd),
+              asset: text(actual.asset) ?? text(quoted.asset),
+              evidence: text(fee.evidence),
+            }
+          : null,
+      },
+    };
+  }
+
   if (kind === "BRIDGE" && text(record.schemaVersion) === "1.7.0") {
     /* A transfer read on both chains. The sender and the recipient are wallet
        addresses and stay out, as every kind's wallets do; the two transactions
@@ -263,6 +344,9 @@ export function publicReceiptDetail(record: Json): PublicReceiptDetail {
         deliveredBy: text(destination.deliveredBy),
         sourceExplorerUrl: text(source.explorerUrl),
         destinationExplorerUrl: text(destination.explorerUrl),
+        rail: "CIRCLE",
+        quotedReceive: text(amounts.receiveAtLeast),
+        ryntraFee: null,
       },
     };
   }
@@ -311,6 +395,9 @@ export function publicReceiptDetail(record: Json): PublicReceiptDetail {
         deliveredBy: null,
         sourceExplorerUrl: null,
         destinationExplorerUrl: null,
+        rail: null,
+        quotedReceive: null,
+        ryntraFee: null,
       },
     };
   }
@@ -351,10 +438,13 @@ export function receiptPrivateValues(record: Json): readonly string[] {
   const evidence = object(record.evidence) ?? {};
   const received = object(record.received) ?? {};
   const bridge = object(record.bridge) ?? {};
+  const route = object(record.route) ?? {};
   return [
-    /* A transfer's two wallets (1.7.0). */
+    /* A transfer's two wallets (1.7.0), and a route's (1.8.0). */
     text(object(bridge.source)?.sender),
     text(object(bridge.destination)?.recipient),
+    text(object(route.source)?.sender),
+    text(object(route.destination)?.recipient),
     text(received.payee),
     text(received.payer),
     text(received.requestId),

@@ -46,6 +46,10 @@
       "role": "published_schema"
     },
     {
+      "path": "packages/arc-verify/schema/route-receipt.schema.json",
+      "role": "published_schema"
+    },
+    {
       "path": "packages/arc-verify/src/canonical.test.mjs",
       "role": "network_free_test"
     },

@@ -1,6 +1,6 @@
 {
   "name": "ryntra-arc",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "private": true,
   "type": "module",
   "description": "Check a Ryntra settlement receipt yourself: its schema, its canonical serialization and seals, and the transfer, payout or USDC/EURC exchange it records read back from Arc.",

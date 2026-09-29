@@ -15,6 +15,8 @@ const schema = JSON.parse(await readFile(new URL("../schema/receipt.schema.json"
 const receivedSchema = JSON.parse(await readFile(new URL("../schema/received-receipt.schema.json", import.meta.url), "utf8"));
 /* So is a transfer into or out of Arc (1.7.0). */
 const bridgeSchema = JSON.parse(await readFile(new URL("../schema/bridge-receipt.schema.json", import.meta.url), "utf8"));
+/* And a route on any rail of the bridge, with the integrator's fee as its own line (1.8.0). */
+const routeSchema = JSON.parse(await readFile(new URL("../schema/route-receipt.schema.json", import.meta.url), "utf8"));
 
 test("the schema is a closed JSON Schema 2020-12 object with a title", () => {
   assert.equal(schema.$schema, "https://json-schema.org/draft/2020-12/schema");
@@ -23,11 +25,28 @@ test("the schema is a closed JSON Schema 2020-12 object with a title", () => {
   assert.equal(schema.additionalProperties, false);
 });
 
-test("between them, the three schemas name every schema version this package can hash", () => {
+test("between them, the four schemas name every schema version this package can hash", () => {
   assert.deepEqual(
-    [...schema.properties.schemaVersion.enum, receivedSchema.properties.schemaVersion.const, bridgeSchema.properties.schemaVersion.const],
+    [
+      ...schema.properties.schemaVersion.enum,
+      receivedSchema.properties.schemaVersion.const,
+      bridgeSchema.properties.schemaVersion.const,
+      routeSchema.properties.schemaVersion.const,
+    ],
     [...RECEIPT_SCHEMA_VERSIONS],
   );
+});
+
+test("the route schema is a closed JSON Schema 2020-12 object that requires both sides, the quote, the fee line and the anchor on Arc", () => {
+  assert.equal(routeSchema.$schema, "https://json-schema.org/draft/2020-12/schema");
+  assert.equal(routeSchema.title, "Ryntra bridge route receipt");
+  assert.equal(routeSchema.additionalProperties, false);
+  for (const member of ["schemaVersion", "id", "route", "execution", "actualEffects", "reconciliation", "finalizedAt", "receiptHash", "integrity"]) {
+    assert.ok(routeSchema.required.includes(member), member);
+  }
+  for (const member of ["rail", "provider", "source", "destination", "quote", "ryntraFee", "providerFee", "attestation", "direction"]) {
+    assert.ok(routeSchema.properties.route.required.includes(member), member);
+  }
 });
 
 test("the bridge schema is a closed JSON Schema 2020-12 object that requires both sides, the attestation and the anchor on Arc", () => {
