@@ -23,6 +23,13 @@ Part of [Ryntra](https://ryntra.io). This repository contains the receipt
 verification tooling and the product modules it stands on, not the
 application.
 
+## Use the product
+
+[Open Ryntra Guard](https://arc.ryntra.io) to swap supported tokens on Arc,
+bridge funds, and read the receipts for your activity. Wallet balances,
+percentage amounts and gas-aware Max are available in Swap and Bridge.
+See the [build log](BUILDLOG.md) for the latest shipped behavior and fees.
+
 ## Check a receipt
 
 Node.js 22.18 or later.

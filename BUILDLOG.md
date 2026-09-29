@@ -1,0 +1,27 @@
+# Ryntra Guard build log
+
+## 2026-09-29 — Swap and bridge with wallet balances
+
+[Swap](https://arc.ryntra.io/app/swap) and [Bridge](https://arc.ryntra.io/app/bridge)
+are available on Arc Mainnet.
+
+- Swap compares executable quotes from KyberSwap and Relay. Select a token
+  from the supported list, see its wallet balance, and choose 25%, 50%, 75%
+  or Max. The amount controls reserve network gas when the spending asset
+  also pays it.
+- The bridge shows the sending network's supported balances and amount
+  controls. Native-asset Max uses a fresh network-gas estimate; when that
+  estimate is unavailable, enter an amount and review the resulting plan.
+- Quotes show the minimum received and distinguish Ryntra's fee, provider
+  costs and network gas. Ryntra charges 0.10% for USDC/EURC swaps and 0.20%
+  for other supported swaps and bridge routes.
+- The wallet signs each action. The interface keeps pending activity
+  recoverable, reports the observed outcome and links the resulting receipt.
+  A prepared or submitted transaction is not presented as a settled one.
+
+Route availability depends on the selected networks, asset, amount and
+provider. Network-gas figures are estimates; the wallet confirms the actual
+transaction before signing.
+
+This repository publishes receipt verification tools. The application remains
+proprietary. The current verifier release is [0.6.0](https://github.com/ryntra-io/ryntra-arc/releases/tag/v0.6.0).
