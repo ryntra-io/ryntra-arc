@@ -1,3 +1,4 @@
+import { KYBER_ROUTER_ON_ARC, KYBER_SELF_FEE_LIMITATION, proveKyberSelfFee, readKyberFeeCall } from "./kyber-fee.ts";
 /**
  * What a receipt claims, and whether Arc agrees.
  *
@@ -62,6 +63,9 @@ export type SwapRouteFacts = Readonly<{
   tokenOut: RouteToken;
   /** Ryntra's fee as collected, in its token; null when the receipt states no fee. */
   fee: Readonly<{ amount: string; token: RouteToken }> | null;
+  feeBps?: number | null;
+  feeSide?: "IN" | "OUT" | null;
+  selfFee?: boolean;
   /**
    * Ryntra's fee is kept by the provider and credited to Ryntra off-chain (a
    * Relay swap's app fee): there is no Transfer of it in the transaction to
@@ -138,7 +142,7 @@ function routeToken(value: unknown): RouteToken | null {
 }
 
 /** The facts a 1.9.0 swap states about its router, its assets and Ryntra's fee. */
-function swapRouteFacts(swap: Json): SwapRouteFacts | null {
+function swapRouteFacts(swap: Json, selfFee = false): SwapRouteFacts | null {
   const tokenIn = routeToken(swap.tokenIn);
   const tokenOut = routeToken(swap.tokenOut);
   if (!tokenIn || !tokenOut) return null;
@@ -155,6 +159,9 @@ function swapRouteFacts(swap: Json): SwapRouteFacts | null {
     tokenIn,
     tokenOut,
     fee: fee && amount ? { amount, token: feeToken } : null,
+    feeBps: integer(fee?.bps),
+    feeSide: text(fee?.side) === "IN" ? "IN" : text(fee?.side) === "OUT" ? "OUT" : null,
+    selfFee,
   };
 }
 
@@ -207,7 +214,7 @@ export function factsFromReceipt(record: Json): ReceiptFacts {
             buyAssetRef: null,
             /* The receipt states the network fee in wei; the checks read it as a decimal. */
             networkFee: weiDecimal(text(object(swap.networkFee)?.amount)),
-            route: swapRouteFacts(swap),
+            route: swapRouteFacts(swap, Array.isArray(record.limitations) && record.limitations.includes(KYBER_SELF_FEE_LIMITATION)),
           }
         : {
             sellAssetRef: text(swap.sellAssetRef),
@@ -258,7 +265,7 @@ export function factsFromSummary(summary: Json): ReceiptFacts {
           sellAssetRef: null,
           buyAssetRef: null,
           networkFee: text(detail.settledNetworkFee),
-          route: summaryRouteFacts(detail),
+          route: summaryRouteFacts(detail, Array.isArray(summary.limitations) && summary.limitations.includes(KYBER_SELF_FEE_LIMITATION)),
         }
       : null,
     /* The public summary never names a wallet: payee and payer are checked only from the file. */
@@ -267,7 +274,7 @@ export function factsFromSummary(summary: Json): ReceiptFacts {
 }
 
 /** A 1.9.0 swap's router, assets and fee, as its public summary states them; null for any other swap. */
-function summaryRouteFacts(detail: Json): SwapRouteFacts | null {
+function summaryRouteFacts(detail: Json, selfFee = false): SwapRouteFacts | null {
   const token = (prefix: "tokenIn" | "tokenOut"): RouteToken | null => {
     const address = evmAddress(detail[`${prefix}Address`]);
     const decimals = integer(detail[`${prefix}Decimals`]);
@@ -287,6 +294,9 @@ function summaryRouteFacts(detail: Json): SwapRouteFacts | null {
     tokenIn,
     tokenOut,
     fee: actual ? { amount: actual, token: text(detail.ryntraFeeSide) === "OUT" ? tokenOut : tokenIn } : null,
+    feeBps: integer(detail.ryntraFeeBps),
+    feeSide: text(detail.ryntraFeeSide) === "IN" ? "IN" : text(detail.ryntraFeeSide) === "OUT" ? "OUT" : null,
+    selfFee,
   };
 }
 
@@ -580,15 +590,33 @@ function checkRouteSwap(facts: ReceiptFacts, reading: ArcTransactionReading, net
   if (toBaseUnits(facts.amountOut, route.tokenOut.decimals) === bought) checks.push(match("bought", `${boughtShown} arrived in the signing wallet, as recorded (${facts.amountOut})`));
   else checks.push(mismatch("bought", `${boughtShown} arrived in the signing wallet; the receipt records ${facts.amountOut ?? "no amount"}`));
 
+  const selfFee = !route.feeAtProvider && (route.selfFee === true ||
+    (reading.to === KYBER_ROUTER_ON_ARC && readKyberFeeCall(reading.input)?.recipientFee === wallet));
+  const actualFee = route.fee ? toBaseUnits(route.fee.amount, route.fee.token.decimals) : null;
+  const selfProof = selfFee ? proveKyberSelfFee({
+    router: reading.to, calldata: reading.input ?? null, wallet,
+    tokenIn: route.tokenIn.address, tokenOut: route.tokenOut.address,
+    bps: route.feeBps ?? null, side: route.feeSide ?? null,
+    debited: sold, credited: bought,
+    ...(actualFee !== null ? { recordedFee: actualFee } : {}),
+    logs: reading.kyberFeeLogs ?? null, transfers: reading.transfers,
+  }) : null;
+  const swapOutput = selfProof?.proven && selfProof.side === "OUT" ? bought - selfProof.amount : bought;
   const minimum = toBaseUnits(facts.minimumAmountOut, route.tokenOut.decimals);
   if (minimum === null) checks.push(notRecorded("minimum", "no signed floor is recorded"));
-  else if (bought >= minimum) checks.push(match("minimum", `at least the signed floor of ${facts.minimumAmountOut} ${route.tokenOut.symbol} arrived`));
+  else if (selfFee && route.feeSide === "OUT" && !selfProof?.proven) checks.push(mismatch("minimum", "the swap floor is unproven without the same-wallet fee evidence"));
+  else if (selfProof?.proven && minimum !== selfProof.minimumOut) checks.push(mismatch("minimum", "the recorded floor differs from the signed Kyber calldata"));
+  else if (swapOutput >= minimum) checks.push(match("minimum", "at least the signed floor of " + facts.minimumAmountOut + " " + route.tokenOut.symbol + " arrived from the swap, excluding any proved self-fee"));
   else checks.push(mismatch("minimum", `${boughtShown} arrived, below the signed floor of ${facts.minimumAmountOut} ${route.tokenOut.symbol}`));
 
   if (route.feeAtProvider && route.feeLandingUnproven) {
     checks.push(mismatch("ryntra-fee", route.feeLandingUnproven));
   } else if (route.feeAtProvider) {
     checks.push(notRecorded("ryntra-fee", "the provider keeps Ryntra's fee and credits it off-chain; there is no Transfer of it in this transaction to check"));
+  } else if (selfFee) {
+    if (!route.fee || actualFee === null) checks.push(notRecorded("ryntra-fee", "the same-wallet fee amount is unread in the receipt; none is inferred"));
+    else if (selfProof?.proven) checks.push(match("ryntra-fee", "the pinned Kyber calldata, Fee event and exact Transfer prove " + route.fee.amount + " " + route.fee.token.symbol + " paid to the signing wallet"));
+    else checks.push(mismatch("ryntra-fee", "the recorded same-wallet fee is unproven: " + (selfProof && !selfProof.proven ? selfProof.reason : "missing evidence")));
   } else if (route.fee === null) {
     checks.push(notRecorded("ryntra-fee", "the receipt states no fee of Ryntra's"));
   } else if (toBaseUnits(route.fee.amount, route.fee.token.decimals) === 0n) {

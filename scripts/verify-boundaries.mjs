@@ -90,6 +90,10 @@ const signingShaped = /\b(?:eth_send\w*|eth_sign\w*|personal_sign|signTypedData|
  * times.
  */
 const publicAddresses = new Set([
+  /* Kyber router on Arc, pinned by the transaction decoder. */
+  "0x6131b5fae19ea4f9d964eac0408e4408b66337b5",
+  /* Kyber executor pinned by the swap decoder and its recorded Arc transactions. */
+  "0x8f10b468b06c6fd214b65f87778827f7d113f996",
   "0x3600000000000000000000000000000000000000",
   "0x89b50855aa3be2f677cd6303cec089b5f319d72a",
   "0xbef5f6d51cb62b58e6a8f77868681825c6fe21c1",

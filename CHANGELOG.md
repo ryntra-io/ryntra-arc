@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.7.0] — 2026-09-30
+
+- Verify KyberSwap receipts when the signing wallet also receives the app
+  fee. Wallet amounts remain net: an input fee returned to that wallet is
+  accounted for separately, and an output fee is separated from the swap's
+  minimum received amount.
+- Match the fee against the pinned router's transaction calldata, its Fee
+  event and an exact token transfer. Missing, conflicting or ambiguous
+  evidence does not become a verified fee.
+- Include the relevant calldata and fee event in agreement checks between
+  RPC responses. Full receipts and their public summaries use the same fee
+  proof, including when the signed minimum is stricter than the quoted cap.
+- Receipt schema 1.9.0 remains compatible. No signing, fee-rate change or
+  transaction submission is part of this verifier.
+
 ## [0.6.0] — 2026-09-29
 
 - Receipt 1.9.0 names a second provider: a swap on Arc through Relay (Relay's

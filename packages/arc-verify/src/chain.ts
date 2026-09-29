@@ -1,3 +1,4 @@
+import { KYBER_FEE_TOPIC, type KyberFeeLog } from "./kyber-fee.ts";
 /**
  * One Arc transaction, read back from the chain over plain JSON-RPC.
  *
@@ -128,6 +129,9 @@ export type ArcTransactionReading = Readonly<{
   effectiveGasPriceWei: bigint;
   /** Every ERC-20 Transfer event in the transaction, from any contract. */
   transfers: readonly TokenTransfer[];
+  /** Optional for older readings; self-fees cannot be proved without these chain facts. */
+  input?: string | null;
+  kyberFeeLogs?: readonly KyberFeeLog[] | null;
   /** `decimals()` of each Circle token that moved, by lowercase address. */
   tokenDecimals: Readonly<Record<string, number | null>>;
   headBlock: number;
@@ -162,6 +166,20 @@ export function decodeTransfers(logs: unknown): TokenTransfer[] | null {
     transfers.push({ logIndex, token, from, to, amount });
   }
   return transfers;
+}
+
+function kyberFeeLogs(logs: unknown): readonly KyberFeeLog[] | null {
+  if (!Array.isArray(logs)) return null;
+  const result: KyberFeeLog[] = [];
+  for (const entry of logs) {
+    const log = object(entry);
+    if (!log || !Array.isArray(log.topics) || String(log.topics[0]).toLowerCase() !== KYBER_FEE_TOPIC) continue;
+    const emitter = address(log.address);
+    const logIndex = smallNumber(log.logIndex);
+    if (!emitter || logIndex === null || typeof log.data !== "string" || !/^0x(?:[0-9a-fA-F]{2})*$/.test(log.data) || !log.topics.every((topic) => typeof topic === "string")) return null;
+    result.push({ address: emitter, topics: log.topics.map((topic: string) => topic.toLowerCase()), data: log.data.toLowerCase(), ...{ logIndex } });
+  }
+  return result;
 }
 
 function decodeReading(
@@ -211,6 +229,8 @@ function decodeReading(
     gasUsed,
     effectiveGasPriceWei,
     transfers,
+    input: typeof transaction.input === "string" && /^0x(?:[0-9a-fA-F]{2})*$/.test(transaction.input) ? transaction.input.toLowerCase() : null,
+    kyberFeeLogs: kyberFeeLogs(receipt.logs),
     headBlock,
   };
 }
@@ -302,6 +322,8 @@ function fingerprint(reading: ArcTransactionReading): Record<string, string> {
     blockTimestamp: reading.blockTimestamp,
     gas: `${reading.gasUsed}x${reading.effectiveGasPriceWei}`,
     transfers: reading.transfers.map((transfer) => `${transfer.logIndex}:${transfer.token}:${transfer.from}:${transfer.to}:${transfer.amount}`).join(","),
+    input: reading.input ?? "",
+    kyberFeeLogs: JSON.stringify(reading.kyberFeeLogs ?? null),
     decimals: Object.entries(reading.tokenDecimals).map(([token, decimals]) => `${token}=${decimals}`).join(","),
   };
 }

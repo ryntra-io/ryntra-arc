@@ -1,5 +1,16 @@
 # Ryntra Guard build log
 
+## 2026-09-30 — Approval recovery and returned fee accounting
+
+Swap keeps unresolved token approvals across reloads and provides a status
+check and transaction link. A price expiring does not erase a pending approval.
+Approval confirmation uses the app's chain checks; the swap still requires
+its own current validation and wallet signature.
+
+KyberSwap can prepare swaps for the wallet that receives the app fee, with
+net balance changes and the returned fee verified separately. Native Bridge
+network groups and options use readable colors in both display themes.
+
 ## 2026-09-30 — App access without IP geography filtering
 
 The app no longer filters its pages, APIs or swap and bridge choices by the
@@ -34,4 +45,4 @@ provider. Network-gas figures are estimates; the wallet confirms the actual
 transaction before signing.
 
 This repository publishes receipt verification tools. The application remains
-proprietary. The current verifier release is [0.6.0](https://github.com/ryntra-io/ryntra-arc/releases/tag/v0.6.0).
+proprietary. The current verifier release is [0.7.0](https://github.com/ryntra-io/ryntra-arc/releases/tag/v0.7.0).

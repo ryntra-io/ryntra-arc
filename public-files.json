@@ -90,6 +90,14 @@
       "role": "source"
     },
     {
+      "path": "packages/arc-verify/src/kyber-fee.test.mjs",
+      "role": "network_free_test"
+    },
+    {
+      "path": "packages/arc-verify/src/kyber-fee.ts",
+      "role": "source"
+    },
+    {
       "path": "packages/arc-verify/src/networks.ts",
       "role": "source"
     },
