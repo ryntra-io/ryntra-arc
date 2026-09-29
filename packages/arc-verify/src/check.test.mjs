@@ -16,7 +16,7 @@ import {
   isExchangeShaped,
   toBaseUnits,
 } from "./check.ts";
-import { ARC_TESTNET_NETWORK } from "./networks.ts";
+import { ARC_MAINNET_NETWORK, ARC_TESTNET_NETWORK } from "./networks.ts";
 import { publicSummary } from "./receipt.ts";
 import {
   BENEFICIARY,
@@ -30,15 +30,17 @@ import {
   seal,
   swapCore,
   swapReceipt,
+  swapRouteCore,
+  swapRouteReceipt,
   transferCore,
   transferReceipt,
 } from "./test-fixtures.mjs";
 
 const ENDPOINT = "https://rpc.example";
 
-async function readingOf(world) {
+async function readingOf(world, network = ARC_TESTNET_NETWORK) {
   const tx = world.eth_getTransactionReceipt.transactionHash;
-  const outcome = await readArcTransaction({ network: ARC_TESTNET_NETWORK, transactionHash: tx, endpoints: [ENDPOINT], call: fakeRpc({ [ENDPOINT]: world }).call });
+  const outcome = await readArcTransaction({ network, transactionHash: tx, endpoints: [ENDPOINT], call: fakeRpc({ [ENDPOINT]: world }).call });
   assert.equal(outcome.state, "READ", JSON.stringify(outcome.notes));
   return outcome.readings[0];
 }
@@ -224,4 +226,61 @@ test("a received payment to another payee, from another payer, or of another amo
   assert.equal(statuses(checkAgainstArc(edited({ payee: TREASURY }), reading, ARC_TESTNET_NETWORK)).recipient, "MISMATCH");
   assert.equal(statuses(checkAgainstArc(edited({ payer: BENEFICIARY }), reading, ARC_TESTNET_NETWORK)).payer, "MISMATCH");
   assert.equal(statuses(checkAgainstArc(edited({ amount: "2", amountBaseUnits: "2000000" }), reading, ARC_TESTNET_NETWORK)).amount, "MISMATCH");
+});
+
+/* ------------------------------------------------------------------ *
+ * A swap through an aggregator's router (1.9.0)
+ * ------------------------------------------------------------------ */
+
+test("a swap through a router, read from its file, matches the router, both amounts, the floor, Ryntra's fee and the network fee", async () => {
+  const facts = factsFromReceipt(swapRouteReceipt());
+  assert.equal(facts.kind, "SWAP");
+  assert.equal(facts.swap.networkFee, "0.0066", "the receipt's wei, read as a decimal");
+  const checks = checkAgainstArc(facts, await readingOf(chainWorld("SWAP_ROUTE"), ARC_MAINNET_NETWORK), ARC_MAINNET_NETWORK);
+  assert.deepEqual(statuses(checks), {
+    chain: "MATCH",
+    status: "MATCH",
+    router: "MATCH",
+    value: "MATCH",
+    sold: "MATCH",
+    bought: "MATCH",
+    minimum: "MATCH",
+    "ryntra-fee": "MATCH",
+    "usdc-decimals": "MATCH",
+    fee: "MATCH",
+    time: "MATCH",
+  });
+  assert.match(byId(checks).sold.detail, /^100\.000000 USDC left the signing wallet/, "the fee and the swap together");
+});
+
+test("from its public summary, a swap through a router is checked the same way, and names no wallet", async () => {
+  const summary = publicSummary(swapRouteReceipt());
+  assert.equal(JSON.stringify(summary).toLowerCase().includes(TREASURY.slice(2)), false);
+  const facts = factsFromSummary(summary);
+  assert.equal(facts.swap.route.router, swapRouteCore().swap.provider.router);
+  const checks = statuses(checkAgainstArc(facts, await readingOf(chainWorld("SWAP_ROUTE"), ARC_MAINNET_NETWORK), ARC_MAINNET_NETWORK));
+  for (const id of ["router", "sold", "bought", "minimum", "ryntra-fee", "fee"]) assert.equal(checks[id], "MATCH", id);
+});
+
+test("a swap that called another contract, paid out less, fell under its floor or never paid Ryntra's fee is contradicted", async () => {
+  const reading = await readingOf(chainWorld("SWAP_ROUTE"), ARC_MAINNET_NETWORK);
+  const withCore = (edit) => {
+    const core = swapRouteCore();
+    edit(core);
+    return factsFromReceipt(seal(core));
+  };
+  const check = (facts) => statuses(checkAgainstArc(facts, reading, ARC_MAINNET_NETWORK));
+  assert.equal(check(withCore((core) => (core.swap.provider.router = "0x9999999999999999999999999999999999999999"))).router, "MISMATCH");
+  assert.equal(check(withCore((core) => (core.actualEffects.amountOut = "88"))).bought, "MISMATCH");
+  assert.equal(check(withCore((core) => (core.actualEffects.amountIn = "99.9"))).sold, "MISMATCH");
+  assert.equal(check(withCore((core) => (core.swap.quote.minimumOut = "88"))).minimum, "MISMATCH");
+  assert.equal(check(withCore((core) => (core.swap.ryntraFee.actual.amount = "0.2")))["ryntra-fee"], "MISMATCH");
+  const noFee = check(withCore((core) => (core.swap.ryntraFee = null)));
+  assert.equal(noFee["ryntra-fee"], "NOT_RECORDED");
+  /* A receipt that itself says the fee was not collected is not contradicted by the missing Transfer. */
+  const notCollected = check(withCore((core) => (core.swap.ryntraFee.actual.amount = "0")));
+  assert.equal(notCollected["ryntra-fee"], "NOT_RECORDED");
+  /* The provider's fee in the effects is never read as the network's. */
+  const unread = check(withCore((core) => { core.swap.networkFee = null; core.actualEffects.feeAmount = "0"; }));
+  assert.equal(unread.fee, "NOT_RECORDED");
 });

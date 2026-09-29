@@ -52,10 +52,24 @@ export type PayoutFacts = Readonly<{
   beneficiaryWalletAddress: string | null;
 }>;
 
+/** A token as a swap through an aggregator's router names it (1.9.0): by address, with its decimals. */
+export type RouteToken = Readonly<{ address: string; symbol: string; decimals: number }>;
+
+/** What a swap through an aggregator's router states (1.9.0): the router, the two assets and Ryntra's fee. */
+export type SwapRouteFacts = Readonly<{
+  router: string | null;
+  tokenIn: RouteToken;
+  tokenOut: RouteToken;
+  /** Ryntra's fee as collected, in its token; null when the receipt states no fee. */
+  fee: Readonly<{ amount: string; token: RouteToken }> | null;
+}>;
+
 export type SwapFacts = Readonly<{
   sellAssetRef: string | null;
   buyAssetRef: string | null;
   networkFee: string | null;
+  /** Set for a swap through an aggregator's router (1.9.0); null for Circle's exchange (1.3.0, 1.5.0). */
+  route?: SwapRouteFacts | null;
 }>;
 
 /** A payment a team received through its request: which asset, and — in the file only — both wallets. */
@@ -92,6 +106,36 @@ function evmAddress(value: unknown): string | null {
   return raw && /^0x[0-9a-fA-F]{40}$/.test(raw) ? raw.toLowerCase() : null;
 }
 
+/** Wei of Arc's native USDC (18 places) as a plain decimal. */
+function weiDecimal(wei: string | null): string | null {
+  if (wei === null || !/^\d+$/.test(wei)) return null;
+  return fromBaseUnits(BigInt(wei), 18, false);
+}
+
+function routeToken(value: unknown): RouteToken | null {
+  const token = object(value);
+  const address = evmAddress(token?.address);
+  const decimals = integer(token?.decimals);
+  return address && decimals !== null ? { address, symbol: text(token?.symbol) ?? "?", decimals } : null;
+}
+
+/** The facts a 1.9.0 swap states about its router, its assets and Ryntra's fee. */
+function swapRouteFacts(swap: Json): SwapRouteFacts | null {
+  const tokenIn = routeToken(swap.tokenIn);
+  const tokenOut = routeToken(swap.tokenOut);
+  if (!tokenIn || !tokenOut) return null;
+  const fee = object(swap.ryntraFee);
+  const actual = object(fee?.actual);
+  const feeToken = text(fee?.side) === "OUT" ? tokenOut : tokenIn;
+  const amount = text(actual?.amount);
+  return {
+    router: evmAddress(object(swap.provider)?.router),
+    tokenIn,
+    tokenOut,
+    fee: fee && amount ? { amount, token: feeToken } : null,
+  };
+}
+
 function chainRefFromRecord(record: Json): string | null {
   const declared = text(object(object(record.payout)?.chain)?.chainRef) ?? text(object(record.received)?.chainRef);
   if (declared) return declared;
@@ -115,8 +159,10 @@ export function factsFromReceipt(record: Json): ReceiptFacts {
     transactionHash: lowerHash(object(record.execution)?.transactionHash) ?? lowerHash(received?.transactionHash),
     amountIn: text(actual?.amountIn) ?? text(received?.amount),
     amountOut: text(actual?.amountOut),
-    feeAmount: text(actual?.feeAmount),
-    minimumAmountOut: text(swap?.authorizedMinimumAmountOut) ?? text(object(record.expectedEffects)?.minimumAmountOut),
+    /* A 1.9.0 swap's effects name the provider's own fee, never the network's: it states the network fee apart. */
+    feeAmount: text(record.schemaVersion) === "1.9.0" ? null : text(actual?.feeAmount),
+    minimumAmountOut:
+      text(swap?.authorizedMinimumAmountOut) ?? text(object(swap?.quote)?.minimumOut) ?? text(object(record.expectedEffects)?.minimumAmountOut),
     finalizedAt: text(record.finalizedAt),
     payout: payout
       ? {
@@ -133,11 +179,19 @@ export function factsFromReceipt(record: Json): ReceiptFacts {
         }
       : null,
     swap: swap
-      ? {
-          sellAssetRef: text(swap.sellAssetRef),
-          buyAssetRef: text(swap.buyAssetRef),
-          networkFee: text(object(swap.settledFees)?.networkAmount),
-        }
+      ? text(record.schemaVersion) === "1.9.0"
+        ? {
+            sellAssetRef: null,
+            buyAssetRef: null,
+            /* The receipt states the network fee in wei; the checks read it as a decimal. */
+            networkFee: weiDecimal(text(object(swap.networkFee)?.amount)),
+            route: swapRouteFacts(swap),
+          }
+        : {
+            sellAssetRef: text(swap.sellAssetRef),
+            buyAssetRef: text(swap.buyAssetRef),
+            networkFee: text(object(swap.settledFees)?.networkAmount),
+          }
       : null,
     received: received
       ? { asset: text(received.asset), payee: evmAddress(received.payee), payer: evmAddress(received.payer) }
@@ -160,7 +214,7 @@ export function factsFromSummary(summary: Json): ReceiptFacts {
     transactionHash: lowerHash(summary.transactionHash),
     amountIn: text(summary.amountIn),
     amountOut: text(summary.amountOut),
-    feeAmount: text(summary.feeAmount),
+    feeAmount: text(summary.schemaVersion) === "1.9.0" ? null : text(summary.feeAmount),
     minimumAmountOut: kind === "SWAP" ? text(detail?.authorizedMinimumAmountOut) : null,
     finalizedAt: text(summary.finalizedAt),
     payout: kind === "PAYOUT" && detail
@@ -182,10 +236,31 @@ export function factsFromSummary(summary: Json): ReceiptFacts {
           sellAssetRef: null,
           buyAssetRef: null,
           networkFee: text(detail.settledNetworkFee),
+          route: summaryRouteFacts(detail),
         }
       : null,
     /* The public summary never names a wallet: payee and payer are checked only from the file. */
     received: kind === "RECEIVED" ? { asset: text(detail?.asset), payee: null, payer: null } : null,
+  };
+}
+
+/** A 1.9.0 swap's router, assets and fee, as its public summary states them; null for any other swap. */
+function summaryRouteFacts(detail: Json): SwapRouteFacts | null {
+  const token = (prefix: "tokenIn" | "tokenOut"): RouteToken | null => {
+    const address = evmAddress(detail[`${prefix}Address`]);
+    const decimals = integer(detail[`${prefix}Decimals`]);
+    return address && decimals !== null ? { address, symbol: text(detail[prefix]) ?? "?", decimals } : null;
+  };
+  const tokenIn = token("tokenIn");
+  const tokenOut = token("tokenOut");
+  if (!tokenIn || !tokenOut) return null;
+  /* «0.1 USDC»: the amount, then its asset. */
+  const actual = text(detail.ryntraFeeActual)?.split(" ")[0] ?? null;
+  return {
+    router: evmAddress(detail.router),
+    tokenIn,
+    tokenOut,
+    fee: actual ? { amount: actual, token: text(detail.ryntraFeeSide) === "OUT" ? tokenOut : tokenIn } : null,
   };
 }
 
@@ -441,6 +516,67 @@ function checkExchange(facts: ReceiptFacts, reading: ArcTransactionReading, netw
   return checks;
 }
 
+/** The wallet's net movement of the token at this address in this transaction: in minus out. */
+function flowOf(reading: ArcTransactionReading, address: string, wallet: string): bigint {
+  const wanted = address.toLowerCase();
+  let net = 0n;
+  for (const transfer of reading.transfers) {
+    if (transfer.token !== wanted) continue;
+    if (transfer.to === wallet) net += transfer.amount;
+    if (transfer.from === wallet) net -= transfer.amount;
+  }
+  return net;
+}
+
+/**
+ * A swap through an aggregator's router (1.9.0): the router the receipt names
+ * was called, what left the signing wallet and what reached it are the
+ * recorded amounts, at least the signed floor arrived, and Ryntra's fee is a
+ * Transfer of exactly the recorded amount in the same transaction.
+ */
+function checkRouteSwap(facts: ReceiptFacts, reading: ArcTransactionReading, network: ArcNetwork, route: SwapRouteFacts): Check[] {
+  const checks: Check[] = [];
+  const wallet = reading.from;
+  if (route.router === null) checks.push(notRecorded("router", `the transaction called ${reading.to ?? "no contract"}; the summary names no router`));
+  else if (reading.to === route.router) checks.push(match("router", `the transaction called the router the receipt names, ${short(route.router)}`));
+  else checks.push(mismatch("router", `the transaction called ${reading.to ?? "no contract"}; the receipt names the router ${route.router}`));
+  if (reading.valueWei === 0n) checks.push(match("value", "no native value was attached"));
+  else checks.push(mismatch("value", `${fromBaseUnits(reading.valueWei, 18, false)} native USDC was attached; a swap of tokens attaches none`));
+
+  const sold = -flowOf(reading, route.tokenIn.address, wallet);
+  const soldShown = `${fromBaseUnits(sold < 0n ? 0n : sold, route.tokenIn.decimals)} ${route.tokenIn.symbol}`;
+  if (toBaseUnits(facts.amountIn, route.tokenIn.decimals) === sold) checks.push(match("sold", `${soldShown} left the signing wallet, as recorded (${facts.amountIn})`));
+  else checks.push(mismatch("sold", `${soldShown} left the signing wallet; the receipt records ${facts.amountIn ?? "no amount"}`));
+
+  const bought = flowOf(reading, route.tokenOut.address, wallet);
+  const boughtShown = `${fromBaseUnits(bought < 0n ? 0n : bought, route.tokenOut.decimals)} ${route.tokenOut.symbol}`;
+  if (toBaseUnits(facts.amountOut, route.tokenOut.decimals) === bought) checks.push(match("bought", `${boughtShown} arrived in the signing wallet, as recorded (${facts.amountOut})`));
+  else checks.push(mismatch("bought", `${boughtShown} arrived in the signing wallet; the receipt records ${facts.amountOut ?? "no amount"}`));
+
+  const minimum = toBaseUnits(facts.minimumAmountOut, route.tokenOut.decimals);
+  if (minimum === null) checks.push(notRecorded("minimum", "no signed floor is recorded"));
+  else if (bought >= minimum) checks.push(match("minimum", `at least the signed floor of ${facts.minimumAmountOut} ${route.tokenOut.symbol} arrived`));
+  else checks.push(mismatch("minimum", `${boughtShown} arrived, below the signed floor of ${facts.minimumAmountOut} ${route.tokenOut.symbol}`));
+
+  if (route.fee === null) {
+    checks.push(notRecorded("ryntra-fee", "the receipt states no fee of Ryntra's"));
+  } else if (toBaseUnits(route.fee.amount, route.fee.token.decimals) === 0n) {
+    /* The receipt itself says the fee was not collected: there is no Transfer to look for. */
+    checks.push(notRecorded("ryntra-fee", "the receipt records that no fee of Ryntra's was collected in this transaction"));
+  } else {
+    const units = toBaseUnits(route.fee.amount, route.fee.token.decimals);
+    const token = route.fee.token.address.toLowerCase();
+    const paid = units !== null && reading.transfers.some((transfer) => transfer.token === token && transfer.amount === units && transfer.to !== wallet);
+    if (paid) checks.push(match("ryntra-fee", `a Transfer of exactly ${route.fee.amount} ${route.fee.token.symbol} left in this transaction, Ryntra's fee as recorded`));
+    else checks.push(mismatch("ryntra-fee", `no Transfer of ${route.fee.amount} ${route.fee.token.symbol} in this transaction; the receipt records it as Ryntra's fee`));
+  }
+  const circle = [circleTokenAt(network, route.tokenIn.address), circleTokenAt(network, route.tokenOut.address)].filter(
+    (token): token is CircleToken => token !== null,
+  );
+  checks.push(...checkDecimals(reading, circle));
+  return checks;
+}
+
 /** Whether a transfer receipt's own amounts describe an exchange rather than a payment. */
 export function isExchangeShaped(facts: ReceiptFacts): boolean {
   return facts.kind === "SWAP" || (facts.amountOut !== null && facts.amountIn !== null && facts.amountOut !== facts.amountIn);
@@ -466,6 +602,7 @@ export function checkAgainstArc(facts: ReceiptFacts, reading: ArcTransactionRead
   );
   if (facts.kind === "PAYOUT") checks.push(...checkPayout(facts, reading, usdc));
   else if (facts.kind === "RECEIVED") checks.push(...checkReceived(facts, reading, network));
+  else if (facts.swap?.route) checks.push(...checkRouteSwap(facts, reading, network, facts.swap.route));
   else if (isExchangeShaped(facts)) checks.push(...checkExchange(facts, reading, network));
   else checks.push(...checkTransfer(facts, reading, usdc));
   checks.push(checkFee(facts, reading));

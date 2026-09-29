@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.5.0] — 2026-09-29
+
+- Receipt 1.9.0: a swap on Arc through an aggregator's router. It records
+  what left the wallet and what reached it, each read from the swap's own
+  Transfer events, the quote at signing beside them — what was expected, the
+  floor the router enforced, the price impact and the pools — and Ryntra's fee
+  as its own line: the rate, the side it was taken from, what was quoted and
+  what the Transfer to Ryntra in the same transaction actually carried. Sealed
+  under its own hash domain, `ryntra:swap-route-receipt:1.9.0`; it ships as
+  `schema/swap-receipt.schema.json`.
+- `checkAgainstArc` reads a 1.9.0 swap back from Arc: the router it names was
+  called, no native value was attached, what left and what arrived in the
+  signing wallet are the recorded amounts, at least the signed floor arrived,
+  Ryntra's fee is a Transfer of exactly the recorded amount in the same
+  transaction, and the network fee is the one recorded. From the public
+  summary the same checks run without a wallet address.
+- A 1.9.0 receipt that itself records Ryntra's fee as not collected is
+  `NOT_RECORDED` on that check, never contradicted by the missing Transfer;
+  its effects' `feeAmount` (the provider's own fee) is never read as the
+  network fee.
+- Nothing that 1.0.0–1.8.0 receipts verify changes.
+
 ## [0.4.0] — 2026-09-29
 
 - Receipt 1.8.0: a route across networks on any rail the Ryntra bridge offers

@@ -24,7 +24,7 @@ export function hashCanonical(value: unknown): string {
    reads it exactly where it always did. */
 
 /**
- * Canonical, domain-separated hashing for the Arc Treasury Payout records.
+ * Canonical, domain-separated hashing for the treasury payout records.
  *
  * This is deliberately a *second* helper rather than a change to
  * `hashCanonical`. The existing helper hashes `JSON.stringify(canonical(value))`
@@ -84,24 +84,30 @@ export const PAYOUT_HASH_DOMAINS = {
      comes from two ledgers; giving it either of the domains above would let
      a single-chain record be presented as a crosschain one. */
   bridgeReceipt: "ryntra:bridge-receipt:1.4.0",
-  /* A payment a team received through its request (Arc 11). The team decided
+  /* A payment a team received through its request (the hub's team sign-in). The team decided
      and approved nothing about the transfer, so the record says what was
      received and rests on the payer's own receipt — and its domain keeps it
      from ever being read as the operation that paid it. */
   receivedPaymentReceipt: "ryntra:received-payment-receipt:1.6.0",
-  /* A transfer into or out of Arc through Circle's CCTP (Arc 14): a burn on
+  /* A transfer into or out of the hub's network through Circle's CCTP: a burn on
      one network, Circle's attestation and a mint on another, each read from
-     its own ledger. 1.4.0 recorded a planned bridge on Arc's testnet with one
+     its own ledger. 1.4.0 recorded a planned bridge on the testnet with one
      side possibly unread; this record exists only when both sides were read,
      names both chains, and is sealed under its own label so neither can be
      presented as the other. */
   bridgeTransferReceipt: "ryntra:bridge-transfer-receipt:1.7.0",
-  /* A route across networks on any rail the Arc bridge offers — Relay,
-     Across, or Circle's bridge with the integrator's fee (Arc 44): both sides
+  /* A route across networks on any rail the hub's bridge offers — Relay,
+     Across, or Circle's bridge with the integrator's fee: both sides
      read, the quote at signing, and the integrator's fee as its own line. Its
      own label, so a CCTP transfer receipt (1.7.0) and a route receipt can
      never be presented as each other. */
   bridgeRouteReceipt: "ryntra:bridge-route-receipt:1.8.0",
+  /* A swap on one network through an aggregator's router, with the integrator's
+     fee paid in the same transaction: what was paid and what arrived, the
+     quote at signing, and the fee as its own line. Its own label, so a
+     testnet swap receipt (1.3.0, 1.5.0) and this one can never be presented
+     as each other. */
+  swapRouteReceipt: "ryntra:swap-route-receipt:1.9.0",
 } as const;
 
 export type PayoutHashDomain = (typeof PAYOUT_HASH_DOMAINS)[keyof typeof PAYOUT_HASH_DOMAINS];
@@ -157,6 +163,7 @@ export function hashDecisionSettlementReceiptCore(core: unknown): string {
   if (schemaVersion === "1.6.0") return hashPayoutRecord(PAYOUT_HASH_DOMAINS.receivedPaymentReceipt, core);
   if (schemaVersion === "1.7.0") return hashPayoutRecord(PAYOUT_HASH_DOMAINS.bridgeTransferReceipt, core);
   if (schemaVersion === "1.8.0") return hashPayoutRecord(PAYOUT_HASH_DOMAINS.bridgeRouteReceipt, core);
+  if (schemaVersion === "1.9.0") return hashPayoutRecord(PAYOUT_HASH_DOMAINS.swapRouteReceipt, core);
   throw new TypeError("Unsupported decision settlement receipt schema version.");
 }
 

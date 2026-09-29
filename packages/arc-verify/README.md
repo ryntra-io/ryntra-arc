@@ -42,7 +42,7 @@ report.checks;  // [{ id: "amount", status: "MATCH", detail: "1.000000 USDC move
 | `src/receipt.ts` | A receipt as a document: its references, its chain, `checkSeal`, and `publicSummary` — the projection Ryntra's receipt verifier returns; the verifier route imports all four from here |
 | `src/networks.ts` | Arc Testnet and Arc Mainnet, their published RPC endpoints and the USDC and EURC contracts, from `lib/guard/networks.ts` |
 | `src/chain.ts` | One transaction read over JSON-RPC from the first endpoints that answer, two of them compared |
-| `src/check.ts` | Every fact of a transfer, payout or exchange receipt held against that reading |
+| `src/check.ts` | Every fact of a transfer, payout, exchange or swap receipt held against that reading |
 | `src/verifier.ts` | The verifier's answer, parsed member by member |
 | `src/verify.ts` | `verifyReceipt` — seal, verifier and chain together, and the verdict |
 | `src/cli.ts` | The command line |
@@ -50,6 +50,7 @@ report.checks;  // [{ id: "amount", status: "MATCH", detail: "1.000000 USDC move
 | `schema/received-receipt.schema.json` | A payment received into a team's wallet, as JSON Schema 2020-12 |
 | `schema/bridge-receipt.schema.json` | A transfer into or out of Arc through Circle's CCTP (receipt `1.7.0`): the burn on one network, Circle's attestation and the mint on the other, the amounts and the fee, as JSON Schema 2020-12 |
 | `schema/route-receipt.schema.json` | A route into or out of Arc on Relay, Across or Circle's bridge with the integrator's fee (receipt `1.8.0`): both sides, the quote at signing, and the integrator's fee as its own line with the evidence it was collected, as JSON Schema 2020-12 |
+| `schema/swap-receipt.schema.json` | A swap on Arc through an aggregator's router (receipt `1.9.0`): what was paid and what arrived, the quote at signing and its floor, and Ryntra's fee as its own line with the evidence it was collected in the same transaction, as JSON Schema 2020-12 |
 
 ## Verdicts
 

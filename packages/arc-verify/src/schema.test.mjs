@@ -8,7 +8,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 import { RECEIPT_SCHEMA_VERSIONS } from "./receipt.ts";
-import { bridgeReceipt, payoutReceipt, receivedReceipt, swapReceipt, transferReceipt } from "./test-fixtures.mjs";
+import { bridgeReceipt, payoutReceipt, receivedReceipt, swapReceipt, swapRouteReceipt, transferReceipt } from "./test-fixtures.mjs";
 
 const schema = JSON.parse(await readFile(new URL("../schema/receipt.schema.json", import.meta.url), "utf8"));
 /* A received payment is its own record, with its own schema (1.6.0). */
@@ -17,6 +17,8 @@ const receivedSchema = JSON.parse(await readFile(new URL("../schema/received-rec
 const bridgeSchema = JSON.parse(await readFile(new URL("../schema/bridge-receipt.schema.json", import.meta.url), "utf8"));
 /* And a route on any rail of the bridge, with the integrator's fee as its own line (1.8.0). */
 const routeSchema = JSON.parse(await readFile(new URL("../schema/route-receipt.schema.json", import.meta.url), "utf8"));
+/* And a swap on Arc through an aggregator's router, with Ryntra's fee as its own line (1.9.0). */
+const swapSchema = JSON.parse(await readFile(new URL("../schema/swap-receipt.schema.json", import.meta.url), "utf8"));
 
 test("the schema is a closed JSON Schema 2020-12 object with a title", () => {
   assert.equal(schema.$schema, "https://json-schema.org/draft/2020-12/schema");
@@ -25,13 +27,14 @@ test("the schema is a closed JSON Schema 2020-12 object with a title", () => {
   assert.equal(schema.additionalProperties, false);
 });
 
-test("between them, the four schemas name every schema version this package can hash", () => {
+test("between them, the five schemas name every schema version this package can hash", () => {
   assert.deepEqual(
     [
       ...schema.properties.schemaVersion.enum,
       receivedSchema.properties.schemaVersion.const,
       bridgeSchema.properties.schemaVersion.const,
       routeSchema.properties.schemaVersion.const,
+      swapSchema.properties.schemaVersion.const,
     ],
     [...RECEIPT_SCHEMA_VERSIONS],
   );
@@ -46,6 +49,18 @@ test("the route schema is a closed JSON Schema 2020-12 object that requires both
   }
   for (const member of ["rail", "provider", "source", "destination", "quote", "ryntraFee", "providerFee", "attestation", "direction"]) {
     assert.ok(routeSchema.properties.route.required.includes(member), member);
+  }
+});
+
+test("the swap schema is a closed JSON Schema 2020-12 object that requires what was paid and received, the quote, the fee line and the anchor on Arc", () => {
+  assert.equal(swapSchema.$schema, "https://json-schema.org/draft/2020-12/schema");
+  assert.equal(swapSchema.title, "Ryntra swap receipt");
+  assert.equal(swapSchema.additionalProperties, false);
+  for (const member of ["schemaVersion", "id", "swap", "execution", "actualEffects", "reconciliation", "finalizedAt", "receiptHash", "integrity"]) {
+    assert.ok(swapSchema.required.includes(member), member);
+  }
+  for (const member of ["provider", "chainRef", "tokenIn", "tokenOut", "paid", "received", "quote", "ryntraFee", "networkFee", "deviations"]) {
+    assert.ok(swapSchema.properties.swap.required.includes(member), member);
   }
 });
 
@@ -106,4 +121,5 @@ test("each test receipt uses only members the schema declares, and every member 
   }
   assert.deepEqual(undeclared(receivedSchema, receivedReceipt()), [], "1.6.0");
   assert.deepEqual(undeclared(bridgeSchema, bridgeReceipt()), [], "1.7.0");
+  assert.deepEqual(undeclared(swapSchema, swapRouteReceipt()), [], "1.9.0");
 });

@@ -28,7 +28,7 @@ export type {
 export type Json = Record<string, unknown>;
 
 /** Every schema version a receipt may carry; each has its own hash contract. */
-export const RECEIPT_SCHEMA_VERSIONS = ["1.0.0", "1.1.0", "1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.8.0"] as const;
+export const RECEIPT_SCHEMA_VERSIONS = ["1.0.0", "1.1.0", "1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.8.0", "1.9.0"] as const;
 
 /** `int_…`, `rcpt_…`, `rcp_…` and any other `prefix_hex` identifier the product mints. */
 const RECORD_REF = /^[a-z][a-z0-9-]{1,23}_[0-9a-f]{16,64}$/;

@@ -151,3 +151,26 @@ test("the public summary of a transfer into Arc carries both transactions, the r
   assert.equal(summary.detail.sourceExplorerUrl, `https://sepolia.basescan.org/tx/${BRIDGE_BURN_TX}`);
   assert.deepEqual(summary.detail.deviations, []);
 });
+
+test("a swap through a router (1.9.0) reseals, answers to its id and its transaction, and its summary carries the fee line but no wallet", async () => {
+  const { swapRouteReceipt, SWAP_ROUTE_TX, TREASURY } = await import("./test-fixtures.mjs");
+  const { checkSeal, publicSummary, receiptKind, referencesOf } = await import("./receipt.ts");
+  const receipt = swapRouteReceipt();
+  const outcome = checkSeal(receipt);
+  assert.equal(outcome.state, "CHECKED");
+  assert.equal(outcome.intact, true);
+  assert.equal(receiptKind(receipt), "SWAP");
+  assert.ok(referencesOf(receipt).includes(receipt.id));
+  assert.ok(referencesOf(receipt).includes(SWAP_ROUTE_TX));
+  const summary = publicSummary(receipt);
+  assert.equal(summary.kind, "SWAP");
+  assert.equal(summary.chainRef, "eip155:5042");
+  assert.equal(summary.detail.tokenIn, "USDC");
+  assert.equal(summary.detail.tokenOut, "EURC");
+  assert.equal(summary.detail.ryntraFeeActual, "0.1 USDC");
+  assert.equal(summary.detail.ryntraFeeState, "COLLECTED");
+  assert.equal(summary.detail.priceImpactBps, 2);
+  assert.equal(JSON.stringify(summary).toLowerCase().includes(TREASURY.slice(2)), false);
+  const changed = { ...receipt, swap: { ...receipt.swap, received: "90" } };
+  assert.equal(checkSeal(changed).intact, false);
+});

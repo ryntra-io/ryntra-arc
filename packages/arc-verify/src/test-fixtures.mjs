@@ -396,6 +396,79 @@ export function verifierBody(receipt, receiptRef = receipt.id) {
 
 export const NOT_FOUND_BODY = (receiptRef) => ({ data: { receiptRef, verdict: "NOT_FOUND", summary: null, integrity: null } });
 
+/* A swap on Arc Mainnet through an aggregator's router (1.9.0): 100 USDC for
+   EURC, Ryntra's 10 bps taken from the USDC paid in. Synthetic addresses. */
+export const ROUTER = "0x6666666666666666666666666666666666666666";
+export const RYNTRA_FEE_TO = "0x7777777777777777777777777777777777777777";
+export const EXECUTOR = "0x8888888888888888888888888888888888888888";
+export const SWAP_ROUTE_TX = h("a6");
+const MAINNET = "eip155:5042";
+
+export function swapRouteCore() {
+  return {
+    schemaVersion: "1.9.0",
+    id: "rcpt_90000000000000000000000000000000",
+    tenantId: "tenant_swap",
+    swap: {
+      swapId: "swp_90000000000000000000000000000000",
+      provider: { name: "KYBERSWAP", reference: "route-1", router: ROUTER, exchanges: ["aero-cl"] },
+      chainRef: MAINNET,
+      blockNumber: "1000",
+      sender: TREASURY,
+      recipient: TREASURY,
+      tokenIn: { address: USDC, symbol: "USDC", decimals: 6 },
+      tokenOut: { address: EURC, symbol: "EURC", decimals: 6 },
+      paid: "100",
+      received: "87.99",
+      quote: {
+        quotedAt: "2026-09-29T12:00:00.000Z",
+        amountIn: "100",
+        expectedOut: "87.99",
+        minimumOut: "87.814",
+        priceImpactBps: 2,
+        slippageBps: 20,
+        source: "KYBERSWAP_ROUTE_BUILD",
+      },
+      ryntraFee: {
+        bps: 10,
+        side: "IN",
+        mechanism: "KYBERSWAP_ROUTER_FEE",
+        landing: "SAME_TRANSACTION",
+        quoted: { amount: "0.1", asset: "USDC", usd: "0.1" },
+        actual: { amount: "0.1", asset: "USDC", usd: null },
+        state: "COLLECTED",
+        evidence: `TRANSFER_TO_RYNTRA_IN_SWAP:${SWAP_ROUTE_TX}`,
+      },
+      networkFee: { amount: "6600000000000000", asset: "USDC", decimals: 18 },
+      deviations: [],
+    },
+    reconciliationStatus: "MATCHED",
+    expectedEffects: { amountIn: "100", amountOut: "87.814", feeAmount: "0.1" },
+    actualEffects: { amountIn: "100", amountOut: "87.99", feeAmount: "0.1" },
+    execution: { transactionHash: SWAP_ROUTE_TX, explorerUrl: `https://explorer.arc.io/tx/${SWAP_ROUTE_TX}` },
+    reconciliation: {
+      status: "MATCHED",
+      evidence: {
+        provider: "CHAIN_READS",
+        sourceRef: `${MAINNET}:tx:${SWAP_ROUTE_TX}`,
+        verificationStatus: "ONCHAIN_VERIFIED",
+        observedAt: "2026-09-29T12:00:12.000Z",
+      },
+    },
+    limitations: [
+      "RYNTRA_DID_NOT_SIGN_OR_BROADCAST",
+      "NOT_LEGAL_OR_COMPLIANCE_PROOF",
+      "SWAP_EXECUTED_BY_THE_NAMED_PROVIDER_NOT_BY_RYNTRA",
+      "PROVIDER_MAY_KEEP_PRICE_IMPROVEMENT_ABOVE_THE_QUOTE",
+      "ARC_MAINNET",
+    ],
+    createdAt: "2026-09-29T12:00:05.000Z",
+    finalizedAt: "2026-09-29T12:00:15.000Z",
+  };
+}
+
+export const swapRouteReceipt = () => seal(swapRouteCore());
+
 /* ------------------------------------------------------------------ *
  * What an Arc endpoint answers
  * ------------------------------------------------------------------ */
@@ -422,6 +495,20 @@ export function chainWorld(kind) {
     TRANSFER: { tx: TRANSFER_TX, to: USDC, gasUsed: 73_950, gasPrice: 20_701_000_000n, logs: transferLogs(USDC, TREASURY, BENEFICIARY, 1_000_000, 11) },
     /* A received payment is the same transaction, seen from the payee's side. */
     RECEIVED: { tx: TRANSFER_TX, to: USDC, gasUsed: 73_950, gasPrice: 20_701_000_000n, logs: transferLogs(USDC, TREASURY, BENEFICIARY, 1_000_000, 11) },
+    /* The 1.9.0 swap: the fee and the rest of the USDC leave the wallet, the EURC arrives. */
+    SWAP_ROUTE: {
+      tx: SWAP_ROUTE_TX,
+      /* Arc Mainnet, the chain the receipt names. */
+      chainId: "0x13b2",
+      to: ROUTER,
+      gasUsed: 330_000,
+      gasPrice: 20_000_000_000n,
+      logs: [
+        ...transferLogs(USDC, TREASURY, RYNTRA_FEE_TO, 100_000, 31),
+        ...transferLogs(USDC, TREASURY, EXECUTOR, 99_900_000, 33),
+        ...transferLogs(EURC, EXECUTOR, TREASURY, 87_990_000, 34),
+      ],
+    },
     SWAP: {
       tx: SWAP_TX,
       to: ADAPTER,
@@ -436,7 +523,7 @@ export function chainWorld(kind) {
     },
   }[kind];
   return {
-    eth_chainId: "0x4cef52",
+    eth_chainId: plan.chainId ?? "0x4cef52",
     eth_blockNumber: hex(1_009),
     eth_getTransactionReceipt: {
       transactionHash: plan.tx,

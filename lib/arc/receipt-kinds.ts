@@ -73,6 +73,8 @@ export function receiptKind(record: Json): ReceiptKind {
   /* 1.8.0 is a route on any of the bridge's rails, with our fee as its own line (Arc 44). */
   if (version === "1.8.0" && object(record.route)) return "BRIDGE";
   if (version === "1.3.0" && object(record.swap)) return "SWAP";
+  /* 1.9.0 is a swap on Arc through an aggregator's router, with our fee as its own line (Arc 15). */
+  if (version === "1.9.0" && object(record.swap)) return "SWAP";
   if (version === "1.2.0" && object(record.payout)) return "PAYOUT";
   if (version === "1.0.0" || version === "1.1.0") return "TRANSFER";
   return "UNKNOWN";
@@ -95,6 +97,26 @@ export type PublicSwapDetail = Readonly<{
   settledTotalDebit: string | null;
   authorizedMinimumAmountOut: string | null;
   deviations: readonly string[];
+  /* A swap through an aggregator's router (1.9.0, Arc 15): the two assets by
+     address, what was paid and what arrived beside the quote, the price
+     impact, the pools and Ryntra's fee as its own line; null on 1.3.0. */
+  tokenIn: string | null;
+  tokenInAddress: string | null;
+  tokenInDecimals: number | null;
+  tokenOut: string | null;
+  tokenOutAddress: string | null;
+  tokenOutDecimals: number | null;
+  router: string | null;
+  paid: string | null;
+  received: string | null;
+  quotedReceive: string | null;
+  priceImpactBps: number | null;
+  route: string | null;
+  ryntraFeeBps: number | null;
+  ryntraFeeSide: string | null;
+  ryntraFeeQuoted: string | null;
+  ryntraFeeActual: string | null;
+  ryntraFeeState: string | null;
 }>;
 
 export type PublicPayoutDetail = Readonly<{
@@ -174,12 +196,76 @@ export type PublicReceiptDetail =
   | Readonly<{ kind: "BRIDGE"; detail: PublicBridgeDetail }>
   | Readonly<{ kind: "RECEIVED"; detail: PublicReceivedDetail }>;
 
+/** Wei of Arc's native USDC (18 places) as the plain decimal a network fee is stated in elsewhere. */
+function weiToDecimal(wei: string): string {
+  const digits = wei.padStart(19, "0");
+  const whole = digits.slice(0, -18).replace(/^0+(?=\d)/, "");
+  const fraction = digits.slice(-18).replace(/0+$/, "");
+  return fraction ? `${whole}.${fraction}` : whole;
+}
+
 function strings(value: unknown): readonly string[] {
   return Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === "string") : [];
 }
 
 export function publicReceiptDetail(record: Json): PublicReceiptDetail {
   const kind = receiptKind(record);
+
+  if (kind === "SWAP" && text(record.schemaVersion) === "1.9.0") {
+    /* A swap on Arc through an aggregator (Arc 15). The wallet stays out, as
+       every kind's does; the two assets, the quote beside what arrived and
+       our fee as its own line are the point of the receipt. */
+    const swap = object(record.swap) ?? {};
+    const provider = object(swap.provider) ?? {};
+    const tokenIn = object(swap.tokenIn) ?? {};
+    const tokenOut = object(swap.tokenOut) ?? {};
+    const quote = object(swap.quote) ?? {};
+    const fee = object(swap.ryntraFee);
+    const quoted = object(fee?.quoted) ?? {};
+    const actual = object(fee?.actual) ?? {};
+    const network = object(swap.networkFee);
+    const amountOf = (figure: Json) => (text(figure.amount) ? `${text(figure.amount)}${text(figure.asset) ? ` ${text(figure.asset)}` : ""}` : null);
+    const exchanges = strings(provider.exchanges);
+    const networkWei = text(network?.amount);
+    return {
+      kind,
+      detail: {
+        provider: text(provider.name),
+        routeDisclosure: text(provider.reference),
+        slippageBps: quote.slippageBps === undefined || quote.slippageBps === null ? null : String(quote.slippageBps),
+        quotedNetworkFee: null,
+        quotedRouteFee: null,
+        quotedTotalFee: null,
+        quotedFeeCoverage: null,
+        settledNetworkFee: networkWei && /^\d+$/.test(networkWei) ? weiToDecimal(networkWei) : null,
+        settledNetworkFeeSource: networkWei ? "SWAP_TRANSACTION_RECEIPT" : null,
+        settledRouteFee: null,
+        settledRouteFeeSource: null,
+        settledRouteObservability: null,
+        authorizedCeiling: null,
+        settledTotalDebit: null,
+        authorizedMinimumAmountOut: text(quote.minimumOut),
+        deviations: strings(swap.deviations),
+        tokenIn: text(tokenIn.symbol),
+        tokenInAddress: text(tokenIn.address),
+        tokenInDecimals: integer(tokenIn.decimals),
+        tokenOut: text(tokenOut.symbol),
+        tokenOutAddress: text(tokenOut.address),
+        tokenOutDecimals: integer(tokenOut.decimals),
+        router: text(provider.router),
+        paid: text(swap.paid),
+        received: text(swap.received),
+        quotedReceive: text(quote.expectedOut),
+        priceImpactBps: integer(quote.priceImpactBps),
+        route: exchanges.length ? exchanges.join(" · ") : null,
+        ryntraFeeBps: integer(fee?.bps),
+        ryntraFeeSide: text(fee?.side),
+        ryntraFeeQuoted: amountOf(quoted),
+        ryntraFeeActual: amountOf(actual),
+        ryntraFeeState: text(fee?.state),
+      },
+    };
+  }
 
   if (kind === "SWAP") {
     const swap = object(record.swap) ?? {};
@@ -205,6 +291,23 @@ export function publicReceiptDetail(record: Json): PublicReceiptDetail {
         settledTotalDebit: text(debit.settledTotal),
         authorizedMinimumAmountOut: text(swap.authorizedMinimumAmountOut),
         deviations: strings(swap.deviations),
+        tokenIn: null,
+        tokenInAddress: null,
+        tokenInDecimals: null,
+        tokenOut: null,
+        tokenOutAddress: null,
+        tokenOutDecimals: null,
+        router: null,
+        paid: null,
+        received: null,
+        quotedReceive: null,
+        priceImpactBps: null,
+        route: null,
+        ryntraFeeBps: null,
+        ryntraFeeSide: null,
+        ryntraFeeQuoted: null,
+        ryntraFeeActual: null,
+        ryntraFeeState: null,
       },
     };
   }
