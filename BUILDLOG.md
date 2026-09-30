@@ -1,5 +1,13 @@
 # Ryntra Guard build log
 
+## 2026-09-30 — A stable result after swapping
+
+Completed swaps retain their result, completed steps and receipt when the
+wallet returns focus or the page reloads. Approval status refreshes
+automatically from the exact transaction, even after its allowance was
+spent. Unknown outcomes remain visible. Starting another swap is explicit,
+so a completed result is not replaced by a new quote or a low-balance prompt.
+
 ## 2026-09-30 — Relay swaps and accessible receipts
 
 New swaps use Relay while KyberSwap is paused. Existing operations and their
