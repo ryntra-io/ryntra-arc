@@ -1,5 +1,13 @@
 # Ryntra Guard build log
 
+## 2026-09-30 — Relay swaps and accessible receipts
+
+New swaps use Relay while KyberSwap is paused. Existing operations and their
+receipts remain accessible. A confirmed swap receives its receipt without
+waiting for Relay to finish indexing the app fee: an unread fee is stated
+as unread, never as collected or zero. Completed swaps in history link
+directly to their receipts.
+
 ## 2026-09-30 — Approval recovery and returned fee accounting
 
 Swap keeps unresolved token approvals across reloads and provides a status
