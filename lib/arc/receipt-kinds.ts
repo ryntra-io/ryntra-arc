@@ -514,7 +514,7 @@ export function publicReceiptDetail(record: Json): PublicReceiptDetail {
   }
 
   if (kind === "RECEIVED") {
-    /* Private by default (CANON §5, п. 9): who asked, who paid, where to, for
+    /* Private by default: who asked, who paid, where to, for
        what and under which invoice number stay with the team. A stranger
        holding the reference learns that a payment of this much arrived, when,
        and which transfer receipt it rests on. */

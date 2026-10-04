@@ -210,7 +210,7 @@ export const ARC_MAINNET_NETWORK: ArcNetwork = {
   },
   carriesRealValue: true,
   gate:
-    "Arc Mainnet runs only on a deployment that selects it (canon Gate D): new sends stay closed until the operator opens the switch; then any wallet may pay any amount its balance covers, every send is checked, simulated and screened before it is signed, and every send is reconciled against the chain before it gets a receipt. The App Kit swap is not offered on Arc Mainnet in this build. A network switch is not what makes mainnet safe.",
+    "Arc Mainnet runs only on a deployment that selects it: new sends stay closed until the operator opens the switch; then any wallet may pay any amount its balance covers, every send is checked, simulated and screened before it is signed, and every send is reconciled against the chain before it gets a receipt. The App Kit swap is not offered on Arc Mainnet in this build. A network switch is not what makes mainnet safe.",
 };
 
 export const ARC_NETWORKS: readonly ArcNetwork[] = [ARC_TESTNET_NETWORK, ARC_MAINNET_NETWORK];

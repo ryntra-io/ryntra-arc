@@ -1,5 +1,23 @@
 # Ryntra Guard build log
 
+## 2026-10-04 — Spot on verified pairs, honest refusals
+
+Spot now lists three markets of official assets against USDC — cirBTC,
+WETH and EURC — and nothing else. For each pair the server picks the
+deepest pool whose two tokens are exactly the official addresses, so a
+copycat token cannot become a market; prices, candles and latest trades
+come from that pool, in USDC. An order is the same guarded Swap: fresh
+prices, an exact plan, a check before the wallet signs, and a receipt.
+
+A send the wallet cannot cover is now refused as a shortfall instead of
+being reported as the network being unreadable. Bridge routes that keep a
+large share of the amount say so before signing, and two dollar
+stablecoins are compared one for one when a provider gives no dollar
+prices. A deposit address for a transfer from Tron or Bitcoin appears on
+the page as soon as it is made, and a token's own contract is refused as
+a refund address. Sign-in without a wallet in the browser explains what
+to do instead of leaving a disabled button.
+
 ## 2026-09-30 — A stable result after swapping
 
 Completed swaps retain their result, completed steps and receipt when the
