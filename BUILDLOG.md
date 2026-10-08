@@ -1,5 +1,28 @@
 # Ryntra Guard build log
 
+## 2026-10-08 — Spot on every Arc pair, with a live chart
+
+Spot now lists every pair on Arc with at least $1,000 of liquidity — the
+most traded, the trending, the new, and any coin found by name, symbol or
+address. A pair is one market, answered by its deepest pool. The real
+USDC, EURC, cirBTC and WETH come first, by their addresses; a pair holding
+a token that copies one of their names is marked as not the real one and
+listed last.
+
+The chart moves on its own: a frame's history is read rarely, and the
+market's minute candles keep its last candle live, while each new trade
+moves it in the browser between reads. Market data is read once per
+market for everyone — the server's instances share one cache and ask the
+data source one at a time — and an answer that could not be refreshed
+says how old it is. The latest trades sit under the chart; the candle
+period a person picks is remembered.
+
+An order is the same guarded Swap. A coin that is not one of the real
+assets shows its facts — age, liquidity, holders, tax — before the button,
+and the button waits for them; a copy offers the real asset first. The
+price impact of a coin is measured on the route itself, against a much
+smaller amount on the same route.
+
 ## 2026-10-08 — Swap any token on Arc
 
 Swap now takes any token on Arc. USDC, EURC and cirBTC swap through
