@@ -12,8 +12,8 @@ many hold it, its creator when known, a tax on buying or selling — as
 facts, not a verdict.
 
 Ryntra's fee follows the swap's class: 1 % on new tokens, 0.5 % on listed
-tokens older than a week, 0.1 % on bitcoin and ether, and the existing
-rate between USDC and EURC. It is shown before signing and paid in the
+tokens older than a week, 0.25 % on bitcoin and ether, and 0.2 % between
+USDC and EURC. It is shown before signing and paid in the
 swap itself, to Ryntra's fee address on Arc; a swap between two tokens
 that are neither USDC, EURC, cirBTC nor WETH carries no fee. Before a
 payment or a swap is signed, the wallet is asked whether its own
