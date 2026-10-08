@@ -30,6 +30,7 @@
             "name": {
               "type": "string",
               "enum": [
+                "CIRCLE",
                 "KYBERSWAP",
                 "RELAY"
               ]
@@ -182,6 +183,7 @@
             "source": {
               "type": "string",
               "enum": [
+                "CIRCLE_STABLECOIN_SERVICE",
                 "KYBERSWAP_ROUTE_BUILD",
                 "RELAY_QUOTE_V2"
               ]
@@ -218,6 +220,7 @@
                 "mechanism": {
                   "type": "string",
                   "enum": [
+                    "CIRCLE_APP_KIT_CUSTOM_FEE",
                     "KYBERSWAP_ROUTER_FEE",
                     "RELAY_APP_FEE"
                   ]
@@ -324,6 +327,68 @@
                     {
                       "type": "null"
                     }
+                  ]
+                },
+                "protocolShare": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "amount": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d{1,36})?$"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "asset": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 24
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "usd": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d{1,36})?$"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "amount",
+                        "asset",
+                        "usd"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "feeClass": {
+                  "type": "string",
+                  "enum": [
+                    "MEME",
+                    "TRENDING",
+                    "MAJOR",
+                    "STABLE",
+                    "AS_NOW"
                   ]
                 },
                 "state": {

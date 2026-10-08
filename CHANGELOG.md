@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.8.0] — 2026-10-08
+
+- Receipt 1.9.0 names a third provider: a swap on Arc through Circle's App Kit
+  Swap (Circle's swap adapter on Arc, the plan signed by Circle's Stablecoin
+  Service). Its quote's source is `CIRCLE_STABLECOIN_SERVICE`, and Ryntra's fee
+  is Circle's custom fee: `mechanism` `CIRCLE_APP_KIT_CUSTOM_FEE`, `landing`
+  `SAME_TRANSACTION`. The person pays the whole fee; Circle's fee collector
+  pays nine tenths of it to Ryntra's fee address and one tenth to Arc in the
+  same transaction — `actual` is what reached Ryntra, `protocolShare` what
+  reached Arc. Circle's own 0.02 % is `swap.providerFee`.
+- `ryntraFee.feeClass` states the class the rate came from (`MEME`,
+  `TRENDING`, `MAJOR`, `STABLE`, `AS_NOW`), on swaps that carry it.
+- A Circle receipt states one more limitation,
+  `A_TENTH_OF_RYNTRA_FEE_GOES_TO_ARC`. Every 1.9.0 receipt through KyberSwap
+  or Relay reads and verifies as before.
+- A token whose symbol is an official asset's (USDC, EURC, cirBTC, WETH) at
+  another address on Arc Mainnet is said to be «not the real one» in the
+  verifier's checks; the receipt keeps the symbol its contract states. The
+  verifier matches the exact symbol only — a look-alike spelling (another
+  alphabet's letter, a prefix or suffix) is not marked by it.
+- The receipt stays 1.9.0 with the new values added, so a verifier older than
+  0.8.0 refuses a Circle receipt as malformed: read Circle receipts with 0.8.0
+  or newer.
+
 ## [0.7.0] — 2026-09-30
 
 - Verify KyberSwap receipts when the signing wallet also receives the app

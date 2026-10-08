@@ -1,5 +1,25 @@
 # Ryntra Guard build log
 
+## 2026-10-08 — Swap any token on Arc
+
+Swap now takes any token on Arc. USDC, EURC and cirBTC swap through
+Circle's App Kit Swap; every other token through KyberSwap, across Arc's
+pools. The token list puts the real USDC, EURC, cirBTC and WETH first, by
+their addresses, and marks a token that copies one of their names as not
+the real one before it can be picked. Any other token comes with a short
+check read a moment ago — the age of its first pool, its liquidity, how
+many hold it, its creator when known, a tax on buying or selling — as
+facts, not a verdict.
+
+Ryntra's fee follows the swap's class: 1 % on new tokens, 0.5 % on listed
+tokens older than a week, 0.1 % on bitcoin and ether, and the existing
+rate between USDC and EURC. It is shown before signing and paid in the
+swap itself, to Ryntra's fee address on Arc; a swap between two tokens
+that are neither USDC, EURC, cirBTC nor WETH carries no fee. Before a
+payment or a swap is signed, the wallet is asked whether its own
+connection reaches Arc; when it does not, the page says so and offers a
+connection that works.
+
 ## 2026-10-04 — Spot on verified pairs, honest refusals
 
 Spot now lists three markets of official assets against USDC — cirBTC,

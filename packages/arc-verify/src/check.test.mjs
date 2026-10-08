@@ -316,3 +316,13 @@ test("a swap that called another contract, paid out less, fell under its floor o
   const unread = check(withCore((core) => { core.swap.networkFee = null; core.actualEffects.feeAmount = "0"; }));
   assert.equal(unread.fee, "NOT_RECORDED");
 });
+
+test("a copy's borrowed symbol is never repeated bare: the verifier says it is not the real one", async () => {
+  const { shownSymbol } = await import("./check.ts");
+  const real = "0x171a4217b86a807a64eb94757db6849fb4bdbaa0";
+  const copy = "0x5555555555555555555555555555555555555555";
+  assert.equal(shownSymbol({ address: real, symbol: "cirBTC" }, ARC_MAINNET_NETWORK), "cirBTC");
+  assert.equal(shownSymbol({ address: copy, symbol: "cirBTC" }, ARC_MAINNET_NETWORK), "cirBTC (not the real one)");
+  assert.equal(shownSymbol({ address: copy, symbol: "ARGUS" }, ARC_MAINNET_NETWORK), "ARGUS");
+  assert.equal(shownSymbol({ address: copy, symbol: "cirBTC" }, ARC_TESTNET_NETWORK), "cirBTC", "the table is Arc Mainnet's");
+});

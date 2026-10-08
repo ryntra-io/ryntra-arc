@@ -97,6 +97,9 @@ const publicAddresses = new Set([
   "0x3600000000000000000000000000000000000000",
   "0x89b50855aa3be2f677cd6303cec089b5f319d72a",
   "0xbef5f6d51cb62b58e6a8f77868681825c6fe21c1",
+  /* cirBTC and WETH on Arc Mainnet: the official assets a copy borrows the name of (the verifier's symbol check). */
+  "0x171a4217b86a807a64eb94757db6849fb4bdbaa0",
+  "0x128cc466b61f542da60c70e3aa11c10e19b84edb",
   "0xfffffffffffffffffffffffffffffffffffffffe",
   /* Relay's v3 ApprovalProxy (docs.relay.link, contract addresses): a swap whose fee Relay keeps was sent to it. */
   "0xccc88a9d1b4ed6b0eaba998850414b24f1c315be",

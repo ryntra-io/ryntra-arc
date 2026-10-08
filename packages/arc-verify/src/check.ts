@@ -564,6 +564,25 @@ function flowOf(reading: ArcTransactionReading, address: string, wallet: string)
   return net;
 }
 
+/*
+ * Arc Mainnet's official assets, by the symbol a copy borrows (Ryntra's
+ * registry, `lib/arc/assets/registry.ts`). A receipt keeps a token's symbol as
+ * its contract says it; the verifier never repeats a borrowed one bare.
+ */
+const ARC_MAINNET_CHAIN_ID = 5042;
+const ARC_MAINNET_OFFICIAL: Readonly<Record<string, string>> = {
+  usdc: "0x3600000000000000000000000000000000000000",
+  eurc: "0xbef5f6d51cb62b58e6a8f77868681825c6fe21c1",
+  cirbtc: "0x171a4217b86a807a64eb94757db6849fb4bdbaa0",
+  weth: "0x128cc466b61f542da60c70e3aa11c10e19b84edb",
+};
+
+/** A token's symbol as a verifier says it: a copy of an official asset's symbol is said to be not the real one. */
+export function shownSymbol(token: Readonly<{ address: string; symbol: string }>, network: ArcNetwork): string {
+  const official = network.chainId === ARC_MAINNET_CHAIN_ID ? ARC_MAINNET_OFFICIAL[token.symbol.trim().toLowerCase()] : undefined;
+  return official && official !== token.address.toLowerCase() ? `${token.symbol} (not the real one)` : token.symbol;
+}
+
 /**
  * A swap through an aggregator's router (1.9.0): the router the receipt names
  * was called, what left the signing wallet and what reached it are the
@@ -574,6 +593,8 @@ function flowOf(reading: ArcTransactionReading, address: string, wallet: string)
 function checkRouteSwap(facts: ReceiptFacts, reading: ArcTransactionReading, network: ArcNetwork, route: SwapRouteFacts): Check[] {
   const checks: Check[] = [];
   const wallet = reading.from;
+  const symbolIn = shownSymbol(route.tokenIn, network);
+  const symbolOut = shownSymbol(route.tokenOut, network);
   if (route.router === null) checks.push(notRecorded("router", `the transaction called ${reading.to ?? "no contract"}; the summary names no router`));
   else if (reading.to === route.router) checks.push(match("router", `the transaction called the router the receipt names, ${short(route.router)}`));
   else checks.push(mismatch("router", `the transaction called ${reading.to ?? "no contract"}; the receipt names the router ${route.router}`));
@@ -581,12 +602,12 @@ function checkRouteSwap(facts: ReceiptFacts, reading: ArcTransactionReading, net
   else checks.push(mismatch("value", `${fromBaseUnits(reading.valueWei, 18, false)} native USDC was attached; a swap of tokens attaches none`));
 
   const sold = -flowOf(reading, route.tokenIn.address, wallet);
-  const soldShown = `${fromBaseUnits(sold < 0n ? 0n : sold, route.tokenIn.decimals)} ${route.tokenIn.symbol}`;
+  const soldShown = `${fromBaseUnits(sold < 0n ? 0n : sold, route.tokenIn.decimals)} ${symbolIn}`;
   if (toBaseUnits(facts.amountIn, route.tokenIn.decimals) === sold) checks.push(match("sold", `${soldShown} left the signing wallet, as recorded (${facts.amountIn})`));
   else checks.push(mismatch("sold", `${soldShown} left the signing wallet; the receipt records ${facts.amountIn ?? "no amount"}`));
 
   const bought = flowOf(reading, route.tokenOut.address, wallet);
-  const boughtShown = `${fromBaseUnits(bought < 0n ? 0n : bought, route.tokenOut.decimals)} ${route.tokenOut.symbol}`;
+  const boughtShown = `${fromBaseUnits(bought < 0n ? 0n : bought, route.tokenOut.decimals)} ${symbolOut}`;
   if (toBaseUnits(facts.amountOut, route.tokenOut.decimals) === bought) checks.push(match("bought", `${boughtShown} arrived in the signing wallet, as recorded (${facts.amountOut})`));
   else checks.push(mismatch("bought", `${boughtShown} arrived in the signing wallet; the receipt records ${facts.amountOut ?? "no amount"}`));
 
@@ -606,8 +627,8 @@ function checkRouteSwap(facts: ReceiptFacts, reading: ArcTransactionReading, net
   if (minimum === null) checks.push(notRecorded("minimum", "no signed floor is recorded"));
   else if (selfFee && route.feeSide === "OUT" && !selfProof?.proven) checks.push(mismatch("minimum", "the swap floor is unproven without the same-wallet fee evidence"));
   else if (selfProof?.proven && minimum !== selfProof.minimumOut) checks.push(mismatch("minimum", "the recorded floor differs from the signed Kyber calldata"));
-  else if (swapOutput >= minimum) checks.push(match("minimum", "at least the signed floor of " + facts.minimumAmountOut + " " + route.tokenOut.symbol + " arrived from the swap, excluding any proved self-fee"));
-  else checks.push(mismatch("minimum", `${boughtShown} arrived, below the signed floor of ${facts.minimumAmountOut} ${route.tokenOut.symbol}`));
+  else if (swapOutput >= minimum) checks.push(match("minimum", "at least the signed floor of " + facts.minimumAmountOut + " " + symbolOut + " arrived from the swap, excluding any proved self-fee"));
+  else checks.push(mismatch("minimum", `${boughtShown} arrived, below the signed floor of ${facts.minimumAmountOut} ${symbolOut}`));
 
   if (route.feeAtProvider && route.feeLandingUnproven) {
     checks.push(mismatch("ryntra-fee", route.feeLandingUnproven));
