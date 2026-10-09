@@ -2,11 +2,11 @@
  * What kind of receipt is this, and what may a stranger be told about it?
  *
  * The Public Receipt Verifier answers for anyone holding a reference — no
- * account, no session, no tenant. Until now it answered with one shape for
- * every receipt, which was correct and thin: the same six amounts whether the
- * record was a transfer, a swap, a payout or a crosschain move. A reader
- * holding a swap receipt could not see what the route cost; a reader holding a
- * bridge receipt could not see whether the money had arrived.
+ * account, no session, no tenant. One shape for every receipt would be correct
+ * and thin: the same six amounts whether the record is a transfer, a swap, a
+ * payout or a crosschain move. A reader holding a swap receipt would not see
+ * what the route cost; a reader holding a bridge receipt would not see whether
+ * the money had arrived.
  *
  * So there are two functions here and the split is the whole design.
  *
@@ -63,17 +63,17 @@ function bool(value: unknown): boolean | null {
  */
 export function receiptKind(record: Json): ReceiptKind {
   const version = text(record.schemaVersion);
-  /* A payment a team received through its request (Arc 11,
-     `lib/guard/arc-received-receipt.ts`): its own record, resting on the
+  /* A payment a team received through its request
+     (`lib/guard/arc-received-receipt.ts`): its own record, resting on the
      payer's transfer receipt. */
   if (version === "1.6.0" && object(record.received)) return "RECEIVED";
   /* 1.4.0 is a planned bridge on Arc's testnet; 1.7.0 a transfer into or out
-     of Arc read on both chains (Arc 14, `lib/arc/bridge/receipt.ts`). */
+     of Arc read on both chains (`lib/arc/bridge/receipt.ts`). */
   if ((version === "1.4.0" || version === "1.7.0") && object(record.bridge)) return "BRIDGE";
-  /* 1.8.0 is a route on any of the bridge's rails, with our fee as its own line (Arc 44). */
+  /* 1.8.0 is a route on any of the bridge's rails, with our fee as its own line. */
   if (version === "1.8.0" && object(record.route)) return "BRIDGE";
   if (version === "1.3.0" && object(record.swap)) return "SWAP";
-  /* 1.9.0 is a swap on Arc through an aggregator's router, with our fee as its own line (Arc 15). */
+  /* 1.9.0 is a swap on Arc through an aggregator's router, with our fee as its own line. */
   if (version === "1.9.0" && object(record.swap)) return "SWAP";
   if (version === "1.2.0" && object(record.payout)) return "PAYOUT";
   if (version === "1.0.0" || version === "1.1.0") return "TRANSFER";
@@ -97,7 +97,7 @@ export type PublicSwapDetail = Readonly<{
   settledTotalDebit: string | null;
   authorizedMinimumAmountOut: string | null;
   deviations: readonly string[];
-  /* A swap through an aggregator's router (1.9.0, Arc 15): the two assets by
+  /* A swap through an aggregator's router (1.9.0): the two assets by
      address, what was paid and what arrived beside the quote, the price
      impact, the pools and Ryntra's fee as its own line; null on 1.3.0. */
   tokenIn: string | null;
@@ -117,7 +117,7 @@ export type PublicSwapDetail = Readonly<{
   ryntraFeeQuoted: string | null;
   ryntraFeeActual: string | null;
   ryntraFeeState: string | null;
-  /* Where Ryntra's fee lands: in the swap's own transaction, or the provider's balance for Ryntra (Arc 66). */
+  /* Where Ryntra's fee lands: in the swap's own transaction, or the provider's balance for Ryntra. */
   ryntraFeeLanding: string | null;
   /* What the provider itself took, as its quote stated it (Relay); null when it takes nothing. */
   providerFeeQuoted: string | null;
@@ -216,7 +216,7 @@ export function publicReceiptDetail(record: Json): PublicReceiptDetail {
   const kind = receiptKind(record);
 
   if (kind === "SWAP" && text(record.schemaVersion) === "1.9.0") {
-    /* A swap on Arc through an aggregator (Arc 15). The wallet stays out, as
+    /* A swap on Arc through an aggregator. The wallet stays out, as
        every kind's does; the two assets, the quote beside what arrived and
        our fee as its own line are the point of the receipt. */
     const swap = object(record.swap) ?? {};
@@ -344,7 +344,7 @@ export function publicReceiptDetail(record: Json): PublicReceiptDetail {
   }
 
   if (kind === "BRIDGE" && text(record.schemaVersion) === "1.8.0") {
-    /* A route on one of the bridge's rails (Arc 44). The wallets stay out, as
+    /* A route on one of the bridge's rails. The wallets stay out, as
        every kind's do; the two transactions, the rail and our fee as its own
        line are the point of the receipt. */
     const route = object(record.route) ?? {};

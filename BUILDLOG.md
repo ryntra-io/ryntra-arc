@@ -1,4 +1,4 @@
-# Ryntra Guard build log
+# Ryntra on Arc — build log
 
 ## 2026-10-09 — Futures on Hyperliquid, from Arc
 

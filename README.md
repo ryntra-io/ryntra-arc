@@ -3,11 +3,12 @@
 [![verify](https://github.com/ryntra-io/ryntra-arc/actions/workflows/ci.yml/badge.svg)](https://github.com/ryntra-io/ryntra-arc/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
-Ryntra prepares USDC payments on [Arc](https://arc.io) for small teams — each
-one approved, signed in the payer's own wallet and reconciled against the
-chain — and closes each one with a **settlement receipt**. An exchange between
-USDC and EURC gets a receipt the same way. This repository is how anyone
-checks such a receipt without taking Ryntra's word for it.
+Ryntra on [Arc](https://arc.io) is dollar money on Circle's chain, from your
+own wallet: send and receive USDC, swap tokens, trade spot, bridge USDC in from
+other chains and pay out a team. Each transfer, payout, exchange and crosschain
+move is signed in the person's own wallet, reconciled against the chain and
+closed with a **settlement receipt**. This repository is how anyone checks such
+a receipt without taking Ryntra's word for it.
 
 `@ryntra/arc-verify` answers three questions about a receipt:
 
@@ -25,9 +26,10 @@ application.
 
 ## Use the product
 
-[Open Ryntra Guard](https://arc.ryntra.io) to swap supported tokens on Arc,
-bridge funds, and read the receipts for your activity. Wallet balances,
-percentage amounts and gas-aware Max are available in Swap and Bridge.
+[Open Ryntra on Arc](https://arc.ryntra.io/app) to send and receive USDC with a
+payment link, swap tokens, trade spot with a live chart, bridge funds, pay out
+a team and read the receipts for your activity. Wallet balances, percentage
+amounts and gas-aware Max are available in Swap and Bridge.
 See the [build log](BUILDLOG.md) for the latest shipped behavior and fees.
 
 ## Check a receipt

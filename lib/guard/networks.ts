@@ -6,19 +6,18 @@
  * whether the network carries real value. Nothing downstream may hard-code a
  * network fact.
  *
- * This is not tidiness. Two separate defects in one session came from network
- * facts typed by hand: an RPC host that a whole country cannot reach, and a
- * chain id whose hex digits were transposed into a chain that does not exist.
- * Both were invisible to the type system and one of them was enshrined by a
- * test. Derived-from-one-source is the only shape that removes that class.
+ * Network facts typed by hand fail in ways the type system cannot see: an RPC
+ * host that a whole country cannot reach, or a chain id whose hex digits are
+ * transposed into a chain that does not exist — and a test can enshrine either.
+ * Deriving every fact from one source is the only shape that removes that class.
  *
  * It is also what makes the product honest about its future. Adding mainnet is
  * a registry entry, not a rewrite. What a registry entry is *not* is the
  * permission to move real money: mainnet is a `CANARY` network. It can be
  * selected only by a deployment that names it, and on that deployment every
  * new send is still closed until the operator opens the switch
- * (`lib/guard/arc-mainnet-canary.ts`); since Arc 17 an open switch lets any
- * wallet pay what its balance covers, with no list and no ceiling. The
+ * (`lib/guard/arc-mainnet-canary.ts`); an open switch lets any wallet pay
+ * what its balance covers, with no list and no ceiling. The
  * registry is the mechanism; the switch is the permission.
  */
 
@@ -28,8 +27,8 @@ export type ArcNetworkStatus =
   /**
    * Configured from verified official sources and selectable only by a
    * deployment that names it, where value-moving actions stay behind the
-   * operator's switch. The name is the first canary's; since Arc 17 the
-   * switch is the whole gate, with no cap and no list of wallets.
+   * operator's switch. The name is the first canary's; the switch is
+   * the whole gate, with no cap and no list of wallets.
    */
   | "CANARY"
   /** Present in the model so the shape is real, but not selectable. */

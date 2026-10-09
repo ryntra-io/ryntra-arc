@@ -472,7 +472,7 @@ export const swapRouteReceipt = () => seal(swapRouteCore());
 /** Relay's v3 approval proxy on Arc: the contract a Relay swap calls. */
 export const RELAY_PROXY = "0xccc88a9d1b4ed6b0eaba998850414b24f1c315be";
 
-/* The same swap through Relay (Arc 66): Relay keeps Ryntra's fee inside its
+/* The same swap through Relay: Relay keeps Ryntra's fee inside its
    own and credits it off-chain, so the receipt says where the fee landed and
    what Relay itself took. */
 export function relaySwapRouteCore() {
