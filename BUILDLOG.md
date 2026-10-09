@@ -1,5 +1,27 @@
 # Ryntra Guard build log
 
+## 2026-10-09 — Futures on Hyperliquid, from Arc
+
+Futures trade on Hyperliquid from a person's own wallet. Money moves from
+their wallet on Arc to their own Hyperliquid account through Circle, and
+back to Arc the same way; Ryntra never holds it. Before the button, the
+ticket says what the position risks in dollars, where it is liquidated and
+how far that is, and both fees — Hyperliquid's and Ryntra's 0.05 %, on its
+own line. Leverage starts at 2x, goes up to 20x on BTC, ETH and SOL and to
+10x elsewhere, and above 5x asks once that the person understands
+liquidation. Every position has its own margin: the amount put in is the
+most it can lose.
+
+Trading uses a key that lives only in the person's browser. Hyperliquid
+lets it trade the account but never withdraw or send money — that always
+needs the person's wallet; it expires in 30 days and turns off with one
+tap. Closing a position needs only that key, also while futures are paused.
+Short of money, the one action is the top-up that covers the order, with
+Circle's fee included.
+
+The page is at arc.ryntra.io/app/futures; it joins the menu after a first
+live trade.
+
 ## 2026-10-08 — Spot on every Arc pair, with a live chart
 
 Spot now lists every pair on Arc with at least $1,000 of liquidity — the
