@@ -1,5 +1,42 @@
 # Ryntra on Arc — build log
 
+## 2026-10-11 — Futures orders that know their own outcome
+
+Every order on the futures page at arc.ryntra.io/app/futures now carries its
+own id from the moment you press the button, before Hyperliquid has answered,
+and a deadline: if it reaches Hyperliquid late, Hyperliquid turns it down
+instead of filling it at a price you no longer expect.
+
+When Hyperliquid does not answer, the page no longer asks you to go and
+check. It looks the order up by that id itself and tells you what happened —
+opened, or not placed at all — and it never sends the same order twice on
+its own. If it was not placed, «Try again» makes a new one, which is safe.
+
+Before anything is signed, the order is checked against what Hyperliquid
+would refuse — its price step, its lot, the $10 minimum, your free money —
+and against how many actions Hyperliquid still allows your address. Closing
+a position is never held back by any of these. The ticket looks the same.
+
+## 2026-10-11 — Markets: every market on Arc in one list
+
+[arc.ryntra.io/app/markets](https://arc.ryntra.io/app/markets) lists every
+market on Arc — every pool of Uniswap and Aerodrome, read from the network
+itself, not only the ones launched with Ryntra. Pick which markets — on the
+market, new today, live launch curves, or run by Ryntra rules — and the order:
+the day's volume, traders, new holders over a day or a week, or the newest.
+Search finds a coin by name, symbol or address.
+
+Each row shows the price and its day, volume, depth within 10 % of the price,
+holders and its Market Health. A coin that borrows the name of USDC, EURC,
+cirBTC or WETH is marked «Not the real one» and never leads the list; a
+search for a real asset shows the real one first.
+
+Each market has one page with five sections: Trade (the live chart and an
+order checked before you sign), Rules (the pool's fee, who can change it,
+locked liquidity, the code on every trade, Ryntra rules), Data (Health with
+every criterion against its threshold, and the market's facts), Journal and
+Rewards. Spot's list became Markets: its old address opens here.
+
 ## 2026-10-10 — The futures page on one live connection
 
 The futures page at arc.ryntra.io/app/futures now keeps one live connection
