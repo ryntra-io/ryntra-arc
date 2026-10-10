@@ -1,5 +1,70 @@
 # Ryntra on Arc — build log
 
+## 2026-10-10 — The futures page on one live connection
+
+The futures page at arc.ryntra.io/app/futures now keeps one live connection
+to Hyperliquid per browser tab, run in the background off the page itself:
+the chart, the market's numbers, your account and your trades all arrive
+over it as they change, instead of being asked for again every few seconds.
+If the connection drops, it comes back by itself and the page catches up on
+what it missed; while it is down, the page reads the same numbers the old
+way, so nothing goes blank.
+
+An order at the market now takes its price from that live feed only when it
+is at most two seconds old — older, it asks Hyperliquid at the moment of the
+click, as before. And next to your balance the page now shows how many
+orders Hyperliquid still allows your address: one for every dollar traded,
+ten thousand to start.
+
+## 2026-10-10 — Market Health and the facts behind every market on Arc
+
+Every market on Arc now comes with the facts a buyer should see before
+trading, each with where it came from: how much of its liquidity nobody can
+take out, who can change what a trade pays, how much the ten largest
+holders hold, how old the token and the market are, and whether any rules
+run it (a market no Ryntra rule runs has no receipts — nothing acts on it).
+Facts, not verdicts: nothing is called safe or risky.
+
+On top of them, Market Health names one of five states — Healthy, Watch,
+Thin, Stressed or Paused — always with the criterion that put the market
+there and the threshold it was measured against: depth within 10 % of the
+price, steady volume, the share of the ten largest holders, and the fall of
+the last 24 hours. A market younger than a day has no state yet: Health
+appears 24 hours after it was created. A state is named only when every
+fact that could change it was read.
+
+The organic share is coming too: of a market's volume, the part traded by
+wallets that had held the token at least seven days. It starts counting
+once the record's history is complete, and shows eight days later.
+
+Thresholds and methodology are published with every answer at
+arc.ryntra.io/api/arc-markets (`?pool=` or `?token=`); the markets page
+shows them next.
+
+## 2026-10-10 — Every pool on Arc, read from the chain
+
+Ryntra now keeps its own record of every pool on Arc — Uniswap v4,
+Uniswap v3 and Aerodrome — read straight from the chain, not from an
+aggregator: each pool, each swap, each position and who holds it, and the
+holders of every token traded in them. For each market it tells where the
+pool came from (which launchpad opened it), how much of its liquidity
+nobody can take out (burned or held by a launchpad's locker), who can
+change the fee a trade pays, how much it traded in the last day, and how
+the token's supply is spread — the share of the ten largest holders, with
+pools, burn addresses and lockers left out.
+
+Every number names where it came from: the events and blocks it was summed
+from, or the contract call that answered it. The record follows Arc's head
+within a few seconds, checks that each block it reads continues the chain
+it already holds, and stops rather than show a chain that does not
+continue. History from the network's first block is filling in now; until
+it is complete and counted again against a second source, facts that need
+all of it are shown as not yet read.
+
+It is open to read at arc.ryntra.io/api/arc-markets — the markets of the
+day, one market (`?pool=`) or one token (`?token=`). The markets page built
+on it comes next.
+
 ## 2026-10-10 — The futures trading key, sealed in the browser
 
 The key that lets the futures page trade for a person — approved once by
