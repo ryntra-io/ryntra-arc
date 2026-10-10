@@ -1,5 +1,28 @@
 # Ryntra on Arc — build log
 
+## 2026-10-09 — The portfolio on Arc, and forgotten money in one signature
+
+One page shows everything a wallet has on Arc: its coins, its deposits,
+loans and collateral in Morpho and Aave, its Uniswap pools, and the rewards
+protocols credited to it — each read from the chain or from the protocol's
+own data, with the total and what it is made of. Circle's assets are marked
+official; a coin that copies their name from another address is marked as
+not the real one, comes first, and is never counted as money. Where a
+deposit sits in a market that is lent out, the page says how much can be
+withdrawn now, and why the rest waits.
+
+Rewards waiting on Arc and pool fees not yet collected are taken in one
+signature from the person's own wallet, with no fee from Ryntra. The batch
+holds two kinds of calls only — Merkl's claim and Uniswap's collect — and
+both pay the signer: the server checks the bytes, tries each call as the
+signer first, and leaves out a reward the chain says was already taken or
+that pays another address; the browser reads the bytes again before the
+wallet sees them. The same batch sent from any other address fails on the
+contracts themselves.
+
+The page is at arc.ryntra.io/app/portfolio; any address can be looked at,
+and only its owner, signed in, can claim.
+
 ## 2026-10-09 — Futures on Hyperliquid, from Arc
 
 Futures trade on Hyperliquid from a person's own wallet. Money moves from
