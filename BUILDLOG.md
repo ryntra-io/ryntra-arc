@@ -1,5 +1,23 @@
 # Ryntra on Arc — build log
 
+## 2026-10-10 — The futures trading key, sealed in the browser
+
+The key that lets the futures page trade for a person — approved once by
+their own wallet, never able to withdraw — is now kept in the browser
+sealed: encrypted under a key the browser's own cryptography makes and
+never lets a page read out. A key kept the old way moves there by itself
+the next time the page opens, with no new signature, and the old copy is
+erased.
+
+The key can now sign the venue's own trading actions the coming terminal
+needs — changing an order, cancelling by the page's own order id, trailing
+stops, TWAP and isolated margin — and still never a transfer, a withdrawal
+or a change of how the account is margined. Every one of these actions was
+checked byte for byte against Hyperliquid's own SDK and against the live
+venue. Only the page's main window signs, one action at a time across tabs.
+
+Nothing changes on screen: arc.ryntra.io/app/futures.
+
 ## 2026-10-09 — The portfolio on Arc, and forgotten money in one signature
 
 One page shows everything a wallet has on Arc: its coins, its deposits,
