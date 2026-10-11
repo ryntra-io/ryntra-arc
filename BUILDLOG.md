@@ -1,5 +1,22 @@
 # Ryntra on Arc — build log
 
+## 2026-10-11 — Futures, laid out your way
+
+The futures page at
+[arc.ryntra.io/app/futures](https://arc.ryntra.io/app/futures) has a «View»
+menu on a desk. «Standard» is the page as it was — and it stays the only view
+on a phone. «Chart» lays out the markets, a large chart, the order and your
+account as blocks you can drag, split, stack as tabs and resize; save any
+arrangement as your own, and export it as a file to share or import one back.
+
+Blocks of one colour show one market: pick ETH in the markets list and the
+chart and the order follow; a chart in another colour keeps its own. While an
+order is on its way, nothing changes the market under it.
+
+Any block can move to its own window on a second monitor. That window runs no
+code of its own — the page you opened draws it and signs every order, so your
+trading key never leaves the page. Layouts are kept in your browser only.
+
 ## 2026-10-11 — A trading key for a day, and one question before it
 
 Trading on the futures page at
