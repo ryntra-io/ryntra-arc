@@ -1,0 +1,556 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Ryntra engine receipt",
+  "description": "A receipt issued by Ryntra for one action its own executor did on Arc under a constitution — a treasury's payment or swap, a creator's ladder step, the anchor of an hour — with the Flight Log's five fields: why, the rule with the constitution's version and SHA-256, the balances before and after at the action's block, and the proof (the transaction, the executor, the operation id). Version 2.0.0; its `receiptHash` is SHA-256 over the canonical core in the domain `ryntra:engine-receipt:2.0.0`. Beside its seals it carries an EIP-712 signature by Ryntra's receipt key — domain `Ryntra Receipt`, version `2`, the network's chain id, Ryntra's ReceiptAnchor as the verifying contract; the type `Receipt(bytes32 operationId,string action,address target,address executor,bytes32 transactionHash,uint64 blockNumber,bytes32 constitution,bytes32 record,uint64 issuedAt)` with `record` = `receiptHash` — and, once its hour has closed, the anchor: the Merkle root of the hour's digests written on ReceiptAnchor, with this receipt's proof. The seals, the signature, the keys and the anchor cannot be written in JSON Schema; @ryntra/arc-verify recomputes and recovers them, holds the keys against Ryntra's registry and reads the transaction and the anchor on Arc.",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "2.0.0"
+    },
+    "kind": {
+      "type": "string",
+      "const": "ENGINE_ACTION"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^rcpt_[0-9a-f]{32}$"
+    },
+    "issuedAt": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
+    },
+    "environment": {
+      "type": "string",
+      "enum": [
+        "stand",
+        "mainnet"
+      ]
+    },
+    "chainRef": {
+      "type": "string",
+      "pattern": "^eip155:\\d{1,12}$"
+    },
+    "operationId": {
+      "type": "string",
+      "pattern": "^0x[0-9a-f]{64}$"
+    },
+    "action": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "guard.pay",
+            "guard.swap",
+            "guard.pause",
+            "vault.step",
+            "vault.collect",
+            "vault.sync",
+            "vault.releaseIdleFund",
+            "vault.pause",
+            "vault.unpause",
+            "anchor.write"
+          ]
+        },
+        "target": {
+          "type": "string",
+          "pattern": "^0x[0-9a-f]{40}$"
+        },
+        "fields": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              }
+            ]
+          }
+        }
+      },
+      "required": [
+        "kind",
+        "target",
+        "fields"
+      ],
+      "additionalProperties": false
+    },
+    "flight": {
+      "type": "object",
+      "properties": {
+        "why": {
+          "type": "string",
+          "minLength": 1
+        },
+        "rule": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "tag": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "rule",
+                    "policy",
+                    "review",
+                    "roadmap"
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "constitution": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^0x[0-9a-f]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "version": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "id",
+            "tag",
+            "constitution",
+            "version"
+          ],
+          "additionalProperties": false
+        },
+        "before": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "token": {
+                "type": "string",
+                "pattern": "^0x[0-9a-f]{40}$"
+              },
+              "holder": {
+                "type": "string",
+                "pattern": "^0x[0-9a-f]{40}$"
+              },
+              "balance": {
+                "type": "string",
+                "pattern": "^(0|[1-9][0-9]*)$"
+              }
+            },
+            "required": [
+              "token",
+              "holder",
+              "balance"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "after": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "token": {
+                "type": "string",
+                "pattern": "^0x[0-9a-f]{40}$"
+              },
+              "holder": {
+                "type": "string",
+                "pattern": "^0x[0-9a-f]{40}$"
+              },
+              "balance": {
+                "type": "string",
+                "pattern": "^(0|[1-9][0-9]*)$"
+              }
+            },
+            "required": [
+              "token",
+              "holder",
+              "balance"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "head": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^0x[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "approvedAt": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "why",
+        "rule",
+        "before",
+        "after",
+        "head",
+        "approvedAt"
+      ],
+      "additionalProperties": false
+    },
+    "proof": {
+      "type": "object",
+      "properties": {
+        "transactionHash": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^0x[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "blockNumber": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "blockHash": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^0x[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "executor": {
+          "type": "string",
+          "pattern": "^0x[0-9a-f]{40}$"
+        },
+        "nonce": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "gasUsed": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "effectiveGasPrice": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "explorerUrl": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uri"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "transactionHash",
+        "blockNumber",
+        "blockHash",
+        "executor",
+        "nonce",
+        "gasUsed",
+        "effectiveGasPrice",
+        "explorerUrl"
+      ],
+      "additionalProperties": false
+    },
+    "reconciliation": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "lines": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "resolved": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "at": {
+                  "type": "string",
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
+                },
+                "note": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "at",
+                "note"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "ok",
+        "lines",
+        "resolved"
+      ],
+      "additionalProperties": false
+    },
+    "limitations": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "RYNTRA_EXECUTOR_SIGNED_AND_SENT_THIS_TRANSACTION",
+          "ONLY_WHAT_THE_CONSTITUTION_AND_POLICYGUARD_ALLOW",
+          "CONTRACTS_NOT_YET_EXTERNALLY_AUDITED",
+          "NOT_LEGAL_OR_COMPLIANCE_PROOF"
+        ]
+      }
+    },
+    "eip712": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "const": "Ryntra Receipt"
+        },
+        "version": {
+          "type": "string",
+          "const": "2"
+        },
+        "primaryType": {
+          "type": "string",
+          "const": "Receipt"
+        },
+        "chainId": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "verifyingContract": {
+          "type": "string",
+          "pattern": "^0x[0-9a-f]{40}$"
+        }
+      },
+      "required": [
+        "name",
+        "version",
+        "primaryType",
+        "chainId",
+        "verifyingContract"
+      ],
+      "additionalProperties": false
+    },
+    "receiptHash": {
+      "type": "string",
+      "pattern": "^0x[0-9a-f]{64}$"
+    },
+    "integrity": {
+      "type": "object",
+      "properties": {
+        "algorithm": {
+          "type": "string",
+          "const": "SHA-256"
+        },
+        "hash": {
+          "type": "string",
+          "pattern": "^0x[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "algorithm",
+        "hash"
+      ],
+      "additionalProperties": false
+    },
+    "signature": {
+      "type": "object",
+      "properties": {
+        "scheme": {
+          "type": "string",
+          "const": "EIP-712"
+        },
+        "signer": {
+          "type": "string",
+          "pattern": "^0x[0-9a-f]{40}$"
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^0x[0-9a-f]{64}$"
+        },
+        "value": {
+          "type": "string",
+          "pattern": "^0x[0-9a-f]{130}$"
+        }
+      },
+      "required": [
+        "scheme",
+        "signer",
+        "digest",
+        "value"
+      ],
+      "additionalProperties": false
+    },
+    "anchor": {
+      "type": "object",
+      "properties": {
+        "contract": {
+          "type": "string",
+          "pattern": "^0x[0-9a-f]{40}$"
+        },
+        "writer": {
+          "type": "string",
+          "pattern": "^0x[0-9a-f]{40}$"
+        },
+        "epoch": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$"
+        },
+        "root": {
+          "type": "string",
+          "pattern": "^0x[0-9a-f]{64}$"
+        },
+        "count": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "proof": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^0x[0-9a-f]{64}$"
+          }
+        },
+        "transactionHash": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^0x[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "uri": {
+          "type": "string",
+          "format": "uri"
+        }
+      },
+      "required": [
+        "contract",
+        "writer",
+        "epoch",
+        "root",
+        "count",
+        "proof",
+        "transactionHash",
+        "uri"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "kind",
+    "id",
+    "issuedAt",
+    "environment",
+    "chainRef",
+    "operationId",
+    "action",
+    "flight",
+    "proof",
+    "reconciliation",
+    "limitations",
+    "eip712",
+    "receiptHash",
+    "integrity",
+    "signature"
+  ],
+  "additionalProperties": false
+}

@@ -10,6 +10,14 @@
       "role": "source"
     },
     {
+      "path": "lib/arc/registry/registry.ts",
+      "role": "source"
+    },
+    {
+      "path": "lib/arc/registry/schema.ts",
+      "role": "source"
+    },
+    {
       "path": "lib/guard/canonical-json.ts",
       "role": "source"
     },
@@ -38,6 +46,10 @@
       "role": "published_schema"
     },
     {
+      "path": "packages/arc-verify/schema/engine-receipt.schema.json",
+      "role": "published_schema"
+    },
+    {
       "path": "packages/arc-verify/schema/receipt.schema.json",
       "role": "published_schema"
     },
@@ -52,6 +64,10 @@
     {
       "path": "packages/arc-verify/schema/swap-receipt.schema.json",
       "role": "published_schema"
+    },
+    {
+      "path": "packages/arc-verify/src/anchor.ts",
+      "role": "source"
     },
     {
       "path": "packages/arc-verify/src/canonical.test.mjs",
@@ -86,7 +102,31 @@
       "role": "source"
     },
     {
+      "path": "packages/arc-verify/src/eip712.ts",
+      "role": "source"
+    },
+    {
+      "path": "packages/arc-verify/src/engine.test.mjs",
+      "role": "network_free_test"
+    },
+    {
+      "path": "packages/arc-verify/src/engine.ts",
+      "role": "source"
+    },
+    {
+      "path": "packages/arc-verify/src/fixtures/engine-receipt.json",
+      "role": "network_free_test"
+    },
+    {
       "path": "packages/arc-verify/src/index.ts",
+      "role": "source"
+    },
+    {
+      "path": "packages/arc-verify/src/keccak.ts",
+      "role": "source"
+    },
+    {
+      "path": "packages/arc-verify/src/keys.ts",
       "role": "source"
     },
     {
@@ -112,6 +152,10 @@
     {
       "path": "packages/arc-verify/src/schema.test.mjs",
       "role": "network_free_test"
+    },
+    {
+      "path": "packages/arc-verify/src/secp256k1.ts",
+      "role": "source"
     },
     {
       "path": "packages/arc-verify/src/test-fixtures.mjs",

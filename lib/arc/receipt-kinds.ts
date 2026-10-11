@@ -31,7 +31,7 @@
  * one workspace.
  */
 
-export const RECEIPT_KINDS = ["TRANSFER", "SWAP", "PAYOUT", "BRIDGE", "RECEIVED", "UNKNOWN"] as const;
+export const RECEIPT_KINDS = ["TRANSFER", "SWAP", "PAYOUT", "BRIDGE", "RECEIVED", "ENGINE", "UNKNOWN"] as const;
 
 export type ReceiptKind = (typeof RECEIPT_KINDS)[number];
 
@@ -67,6 +67,8 @@ export function receiptKind(record: Json): ReceiptKind {
      (`lib/guard/arc-received-receipt.ts`): its own record, resting on the
      payer's transfer receipt. */
   if (version === "1.6.0" && object(record.received)) return "RECEIVED";
+  /* 2.0.0 is what Ryntra's executor itself did, signed with EIP-712 (`lib/arc/engine/flight-log/receipt.ts`). */
+  if (version === "2.0.0" && object(record.signature) && object(record.action)) return "ENGINE";
   /* 1.4.0 is a planned bridge on Arc's testnet; 1.7.0 a transfer into or out
      of Arc read on both chains (`lib/arc/bridge/receipt.ts`). */
   if ((version === "1.4.0" || version === "1.7.0") && object(record.bridge)) return "BRIDGE";
@@ -195,6 +197,7 @@ export type PublicReceivedDetail = Readonly<{
 export type PublicReceiptDetail =
   | Readonly<{ kind: "TRANSFER"; detail: null }>
   | Readonly<{ kind: "UNKNOWN"; detail: null }>
+  | Readonly<{ kind: "ENGINE"; detail: null }>
   | Readonly<{ kind: "SWAP"; detail: PublicSwapDetail }>
   | Readonly<{ kind: "PAYOUT"; detail: PublicPayoutDetail }>
   | Readonly<{ kind: "BRIDGE"; detail: PublicBridgeDetail }>
@@ -550,7 +553,15 @@ export function receiptPrivateValues(record: Json): readonly string[] {
   const received = object(record.received) ?? {};
   const bridge = object(record.bridge) ?? {};
   const route = object(record.route) ?? {};
+  /* What the executor did for a treasury (2.0.0): its why, and whose money went where. A vault's and an anchor's
+     fields are a market's public record. */
+  const action = object(record.action) ?? {};
+  const fields = object(action.fields) ?? {};
+  const treasury = record.schemaVersion === "2.0.0" && typeof action.kind === "string" && action.kind.startsWith("guard.");
   return [
+    record.schemaVersion === "2.0.0" ? text(object(record.flight)?.why) : null,
+    treasury ? text(fields.account) : null,
+    treasury ? text(fields.recipient) : null,
     /* A transfer's two wallets (1.7.0), and a route's (1.8.0). */
     text(object(bridge.source)?.sender),
     text(object(bridge.destination)?.recipient),

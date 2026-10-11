@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.9.0] — 2026-10-11
+
+- Receipt 2.0.0: what Ryntra's own executor did on Arc under a
+  constitution — a treasury's payment or swap, a creator's ladder step, the
+  anchor of an hour — with the Flight Log's five fields (why; the rule with the
+  constitution's version and SHA-256; the balances before and after at the
+  action's block; the proof). Sealed like every receipt, under its own label
+  `ryntra:engine-receipt:2.0.0`.
+- It is signed with EIP-712 by Ryntra's receipt key — domain `Ryntra Receipt`,
+  version `2`, the network's chain id, Ryntra's `ReceiptAnchor` as the verifying
+  contract; the signed `record` is the receipt's own seal — and, once its hour
+  has closed, anchored: the Merkle root of the hour's digests on `ReceiptAnchor`,
+  with the receipt's proof beside its signature.
+- `verifyReceipt` and `arc-verify` check a 2.0.0 receipt: the digest
+  recomputed and the signer recovered on your machine, the receipt key, the
+  executor and the anchor held against Ryntra's registry of contracts and keys
+  on Arc (now shipped in the package, with the days each was valid; a newer one
+  through `--registry <file>`), the transaction and the anchor's record read on
+  Arc. Not anchored yet, or a key the registry here does not know, is
+  `INCOMPLETE`; anything that disagrees is `CONTRADICTED`.
+- Keccak-256 and the secp256k1 address recovery are written in the package: it
+  still has no runtime dependency.
+- `schema/engine-receipt.schema.json` publishes the 2.0.0 receipt as JSON
+  Schema 2020-12. Every earlier receipt reads and verifies as before.
+
 ## [0.8.0] — 2026-10-08
 
 - Receipt 1.9.0 names a third provider: a swap on Arc through Circle's App Kit

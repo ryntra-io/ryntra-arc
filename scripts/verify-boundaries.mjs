@@ -103,6 +103,10 @@ const publicAddresses = new Set([
   "0xfffffffffffffffffffffffffffffffffffffffe",
   /* Relay's v3 ApprovalProxy (docs.relay.link, contract addresses): a swap whose fee Relay keeps was sent to it. */
   "0xccc88a9d1b4ed6b0eaba998850414b24f1c315be",
+  /* The two keys of the 2.0.0 receipt fixture (packages/arc-verify/src/fixtures/engine-receipt.json): made for it
+     by the product's code and thrown away after signing — no one holds them, no money was ever at them. */
+  "0x76fdc23e16502b1144e0503aa44ed272c696c129",
+  "0xda43a451c36757e4d82e04858dae239cc2a84ae9",
 ]);
 const synthetic = /^0x([0-9a-f])\1{39}$/;
 const evmAddress = /(?<![0-9a-fA-Fx])0x[0-9a-fA-F]{40}(?![0-9a-fA-F])/g;

@@ -24,10 +24,16 @@
  *   be checked: the chain could not be read, the verifier did not answer, or
  *   the kind is not one this package reads back from Arc.
  *
+ * A receipt of what Ryntra's executor did (2.0.0) is checked the same way, with its own questions
+ * besides the seals: the EIP-712 signature and whose key made it, the transaction, and the anchor of
+ * its hour on Arc (`engine.ts`).
+ *
  * An unknown is never promoted to a success.
  */
 
 import { canonicalJson } from "./canonical.ts";
+import { checkEngineReceipt, publicEngineView } from "./engine.ts";
+import type { ArcRegistry } from "./keys.ts";
 import { checkAgainstArc, CHECKED_KINDS, factsFromReceipt, factsFromSummary, isExchangeShaped } from "./check.ts";
 import type { Check, ReceiptFacts } from "./check.ts";
 import { jsonRpc, readArcTransaction, readingsConflict } from "./chain.ts";
@@ -84,6 +90,8 @@ export type VerifyOptions = {
   /** Arc JSON-RPC endpoints to read through, in order; defaults to the network's published ones. */
   rpc?: readonly string[];
   fetchImpl?: typeof fetch;
+  /** Ryntra's registry of keys and contracts to trust (2.0.0); defaults to the one this package was released with. */
+  registry?: ArcRegistry;
 };
 
 function kindWord(facts: ReceiptFacts): string {
@@ -175,7 +183,12 @@ export async function verifyReceipt(options: VerifyOptions): Promise<Verificatio
           notes.push("The verifier holds no receipt with this reference; the file is checked on its own.");
         } else {
           const sameSeal = answer.integrity?.receiptHash.recorded === report.seal.receiptHash;
-          const sameSummary = answer.verdict !== "VERIFIED" || canonicalJson(publicSummary(record)) === canonicalJson(summary);
+          /* A 2.0.0 receipt's anchor is added beside its signature once its hour is anchored: a file saved before
+             that is the same receipt. The anchor is compared by neither side — each one present is checked on Arc. */
+          const engine = record.schemaVersion === "2.0.0";
+          const projection = engine ? { ...publicEngineView(record), anchor: null } : publicSummary(record);
+          const theirs = engine && summary ? { ...summary, anchor: null } : summary;
+          const sameSummary = answer.verdict !== "VERIFIED" || canonicalJson(projection) === canonicalJson(theirs);
           report.verifier.sameReceipt = sameSeal && sameSummary && answer.verdict === "VERIFIED";
           if (!report.verifier.sameReceipt) {
             contradicted = true;
@@ -186,7 +199,40 @@ export async function verifyReceipt(options: VerifyOptions): Promise<Verificatio
     }
   }
 
-  /* 3. Arc. */
+  /* 3. A receipt of Ryntra's executor (2.0.0): signature, keys, transaction and anchor. */
+  /* The file, with the anchor the verifier now serves for the same receipt when the file was saved before it. */
+  const anchorFromVerifier = record?.schemaVersion === "2.0.0" && !object(record.anchor) && report.verifier.sameReceipt === true ? object(summary?.anchor) : null;
+  const engineSource = record?.schemaVersion === "2.0.0" ? (anchorFromVerifier ? { ...record, anchor: anchorFromVerifier } : record) : summary?.schemaVersion === "2.0.0" ? summary : null;
+  if (engineSource) {
+    const engine = await checkEngineReceipt(engineSource, { registry: options.registry, rpc: options.rpc, fetchImpl });
+    report.kind = "ENGINE";
+    report.schemaVersion = "2.0.0";
+    report.network = engine.network;
+    report.transactionHash = engine.transactionHash;
+    report.explorerUrl = engine.explorerUrl;
+    report.checks = engine.checks;
+    notes.push(...engine.notes);
+    if (anchorFromVerifier) notes.push("The file was saved before its hour was anchored; the anchor the verifier serves for it is checked on Arc.");
+    report.arc = { ...report.arc, state: engine.arc.sources.length ? "READ" : "NOT_READ", sources: engine.arc.sources, blockNumber: engine.arc.blockNumber, blockTimestamp: engine.arc.blockTimestamp, confirmations: engine.arc.confirmations };
+    const failed = engine.checks.filter((check) => check.status === "MISMATCH");
+    const open = engine.checks.filter((check) => check.status === "NOT_RECORDED");
+    if (failed.length > 0) {
+      contradicted = true;
+      reasons.push(`The receipt states what is not so: ${failed.map((check) => `${check.id} (${check.detail})`).join("; ")}.`);
+    }
+    if (contradicted) report.verdict = "CONTRADICTED";
+    else if (report.seal.state === "INTACT" && open.length === 0) {
+      report.verdict = "CONFIRMED";
+      reasons.unshift(`The receipt is intact (${report.seal.by === "THIS_MACHINE" ? "recomputed on this machine" : "recomputed by the verifier"}), signed by Ryntra's receipt key, and Arc shows its transaction and its hour's anchor.`);
+    } else {
+      report.verdict = "INCOMPLETE";
+      if (report.seal.state !== "INTACT") reasons.push("The receipt's seals were not checked.");
+      for (const check of open) reasons.push(`${check.id}: ${check.detail}.`);
+    }
+    return report;
+  }
+
+  /* 4. Arc. */
   const facts: ReceiptFacts | null = record ? factsFromReceipt(record) : summary ? factsFromSummary(summary) : null;
   if (!facts) {
     if (report.verifier.state === "NOT_FOUND") reasons.push("The verifier holds no receipt with this reference.");

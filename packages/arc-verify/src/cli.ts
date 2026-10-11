@@ -11,6 +11,7 @@
 import { readFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 
+import { parseRegistry, type ArcRegistry } from "./keys.ts";
 import { normalizeReceiptReference } from "./receipt.ts";
 import { DEFAULT_VERIFIER } from "./verifier.ts";
 import { verifyReceipt } from "./verify.ts";
@@ -31,11 +32,17 @@ Options
   --no-verifier        ask no verifier; needs --receipt
   --rpc <url>          an Arc JSON-RPC endpoint to read through; repeat for more
                        (default: the endpoints Arc publishes for the network)
+  --registry <file>    Ryntra's registry of keys and contracts to trust for a
+                       receipt of Ryntra's executor (2.0.0), as published at
+                       arc.ryntra.io/api/arc-registry (default: the registry
+                       this release carries)
   --json               print the whole report as JSON
   --help               print this text
 
 Exit status
-  0 CONFIRMED     the receipt is intact and Arc shows what it records
+  0 CONFIRMED     the receipt is intact and Arc shows what it records; a
+                  receipt of Ryntra's executor is also signed by Ryntra's
+                  receipt key and its hour is anchored on Arc
   1 CONTRADICTED  a seal is broken, or Arc shows something else
   2 INCOMPLETE    nothing contradicts it, but something could not be checked
   64              the command line could not be read
@@ -51,6 +58,7 @@ export type CliIo = {
 type Parsed = {
   reference: string | null;
   receiptPath: string | null;
+  registryPath: string | null;
   verifier: string | null;
   rpc: string[];
   json: boolean;
@@ -58,7 +66,7 @@ type Parsed = {
 };
 
 function parse(argv: readonly string[]): Parsed | string {
-  const parsed: Parsed = { reference: null, receiptPath: null, verifier: DEFAULT_VERIFIER, rpc: [], json: false, help: false };
+  const parsed: Parsed = { reference: null, receiptPath: null, registryPath: null, verifier: DEFAULT_VERIFIER, rpc: [], json: false, help: false };
   let noVerifier = false;
   let verifierGiven = false;
   for (let index = 0; index < argv.length; index += 1) {
@@ -76,6 +84,10 @@ function parse(argv: readonly string[]): Parsed | string {
       const path = value();
       if (!path) return "--receipt needs a file";
       parsed.receiptPath = path;
+    } else if (argument === "--registry") {
+      const path = value();
+      if (!path) return "--registry needs a file";
+      parsed.registryPath = path;
     } else if (argument === "--verifier") {
       const url = value();
       if (!url) return "--verifier needs a URL";
@@ -182,12 +194,29 @@ export async function main(argv: readonly string[], io: CliIo): Promise<number> 
       return 64;
     }
   }
+  let registry: ArcRegistry | undefined;
+  if (parsed.registryPath !== null) {
+    let raw: unknown;
+    try {
+      raw = JSON.parse(await (io.readText ?? ((path: string) => readFile(path, "utf8")))(parsed.registryPath));
+    } catch {
+      io.stderr(`arc-verify: cannot read ${parsed.registryPath} as JSON\n`);
+      return 64;
+    }
+    const read = parseRegistry(raw);
+    if (typeof read === "string") {
+      io.stderr(`arc-verify: ${parsed.registryPath}: ${read}\n`);
+      return 64;
+    }
+    registry = read;
+  }
   const report = await verifyReceipt({
     reference: parsed.reference,
     receipt,
     verifier: parsed.verifier,
     rpc: parsed.rpc,
     fetchImpl: io.fetchImpl,
+    registry,
   });
   io.stdout(parsed.json ? `${JSON.stringify(report, null, 2)}\n` : renderReport(report));
   return EXIT_CODE[report.verdict];

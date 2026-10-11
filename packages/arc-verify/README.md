@@ -1,11 +1,19 @@
 # @ryntra/arc-verify
 
-Check a Ryntra settlement receipt yourself. Recompute its two seals, then read
-the transaction it records back from Arc and hold every fact the receipt
-states against the chain: status, token contract, amounts, the wallets a
-payout names, block, network fee, total debit and time.
+Check a Ryntra receipt yourself. Recompute its two seals, then read the
+transaction it records back from Arc and hold every fact the receipt states
+against the chain: status, token contract, amounts, the wallets a payout
+names, block, network fee, total debit and time.
 
-Read-only: nothing here holds a key, signs or sends. No runtime dependencies;
+A receipt of what Ryntra's own executor did on Arc (`2.0.0`) is also signed
+with EIP-712 by Ryntra's receipt key and, once its hour has closed, anchored:
+the Merkle root of the hour's receipts is written on Ryntra's `ReceiptAnchor`.
+This package recomputes the digest, recovers the signer, holds the keys and
+the anchor against Ryntra's published registry and reads the transaction and
+the anchor on Arc.
+
+Read-only: nothing here holds a key, signs or sends. No runtime dependencies —
+Keccak-256 and the secp256k1 address recovery are written in the package;
 Node.js 22.18 or later runs the TypeScript sources directly.
 
 ## Command line
@@ -22,6 +30,7 @@ node packages/arc-verify/src/cli.ts --receipt receipt.json
 | `--verifier <url>` | The receipt verifier to ask; default `https://ryntra.io/api/arc-verify` |
 | `--no-verifier` | Ask no verifier; needs `--receipt` |
 | `--rpc <url>` | An Arc JSON-RPC endpoint to read through; repeat for more. Default: the endpoints Arc publishes for the receipt's network |
+| `--registry <file>` | Ryntra's registry of contracts and keys to trust for a `2.0.0` receipt, as `arc.ryntra.io/api/arc-registry` serves it. Default: the registry this release carries |
 | `--json` | Print the whole report as JSON |
 
 Exit status: `0` CONFIRMED, `1` CONTRADICTED, `2` INCOMPLETE, `64` usage.
@@ -46,6 +55,13 @@ report.checks;  // [{ id: "amount", status: "MATCH", detail: "1.000000 USDC move
 | `src/verifier.ts` | The verifier's answer, parsed member by member |
 | `src/verify.ts` | `verifyReceipt` — seal, verifier and chain together, and the verdict |
 | `src/cli.ts` | The command line |
+| `src/keccak.ts` | Keccak-256, as Ethereum and Arc use it |
+| `src/secp256k1.ts` | The address that signed a digest (`ecrecover`), low-s only |
+| `src/eip712.ts` | The EIP-712 form of a `2.0.0` receipt — the one definition Ryntra signs with |
+| `src/anchor.ts` | A receipt's Merkle proof to its hour's root, and the anchor's record read from Arc |
+| `src/keys.ts` | Whose signature and anchor to trust: Ryntra's registry of contracts and keys on Arc (`lib/arc/registry`), with the days each was valid |
+| `src/engine.ts` | Every check of a `2.0.0` receipt beyond its seals, and its public view |
+| `schema/engine-receipt.schema.json` | What Ryntra's executor did on Arc (receipt `2.0.0`): the action, the Flight Log's five fields — why, the rule with the constitution's SHA-256, the balances before and after, the proof — the seals, the EIP-712 signature and the anchor, as JSON Schema 2020-12 |
 | `schema/receipt.schema.json` | The receipt as JSON Schema 2020-12, generated from the schema the product validates with |
 | `schema/received-receipt.schema.json` | A payment received into a team's wallet, as JSON Schema 2020-12 |
 | `schema/bridge-receipt.schema.json` | A transfer into or out of Arc through Circle's CCTP (receipt `1.7.0`): the burn on one network, Circle's attestation and the mint on the other, the amounts and the fee, as JSON Schema 2020-12 |
@@ -65,6 +81,15 @@ report.checks;  // [{ id: "amount", status: "MATCH", detail: "1.000000 USDC move
   a kind this package does not read back from Arc.
 
 An unknown is never promoted to a success.
+
+For a `2.0.0` receipt, `CONFIRMED` also needs the signature to recover to
+Ryntra's receipt key for that network on the day it was signed, the
+transaction to be sent by Ryntra's executor key to the contract the receipt
+names, and the hour's anchor on Arc to hold the root the receipt's proof leads
+to. A receipt whose hour has not closed is `INCOMPLETE` until it is anchored;
+a key the registry this tool holds does not know is `INCOMPLETE` (pass a newer
+`--registry`); a key the registry names otherwise, or one revoked before it
+signed, is `CONTRADICTED`.
 
 A transfer into or out of Arc (`1.7.0`) is sealed under its own label, so it
 can never be read as a transfer or a payout. This package recomputes its seals

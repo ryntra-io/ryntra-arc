@@ -19,6 +19,9 @@ const bridgeSchema = JSON.parse(await readFile(new URL("../schema/bridge-receipt
 const routeSchema = JSON.parse(await readFile(new URL("../schema/route-receipt.schema.json", import.meta.url), "utf8"));
 /* And a swap on Arc through an aggregator's router, with Ryntra's fee as its own line (1.9.0). */
 const swapSchema = JSON.parse(await readFile(new URL("../schema/swap-receipt.schema.json", import.meta.url), "utf8"));
+/* And what Ryntra's executor itself did, signed with EIP-712 and anchored (2.0.0). */
+const engineSchema = JSON.parse(await readFile(new URL("../schema/engine-receipt.schema.json", import.meta.url), "utf8"));
+const engineFixture = JSON.parse(await readFile(new URL("./fixtures/engine-receipt.json", import.meta.url), "utf8"));
 
 test("the schema is a closed JSON Schema 2020-12 object with a title", () => {
   assert.equal(schema.$schema, "https://json-schema.org/draft/2020-12/schema");
@@ -27,7 +30,7 @@ test("the schema is a closed JSON Schema 2020-12 object with a title", () => {
   assert.equal(schema.additionalProperties, false);
 });
 
-test("between them, the five schemas name every schema version this package can hash", () => {
+test("between them, the six schemas name every schema version this package can hash", () => {
   assert.deepEqual(
     [
       ...schema.properties.schemaVersion.enum,
@@ -35,6 +38,7 @@ test("between them, the five schemas name every schema version this package can 
       bridgeSchema.properties.schemaVersion.const,
       routeSchema.properties.schemaVersion.const,
       swapSchema.properties.schemaVersion.const,
+      engineSchema.properties.schemaVersion.const,
     ],
     [...RECEIPT_SCHEMA_VERSIONS],
   );
@@ -62,6 +66,18 @@ test("the swap schema is a closed JSON Schema 2020-12 object that requires what 
   for (const member of ["provider", "chainRef", "tokenIn", "tokenOut", "paid", "received", "quote", "ryntraFee", "networkFee", "deviations"]) {
     assert.ok(swapSchema.properties.swap.required.includes(member), member);
   }
+});
+
+test("the engine schema is a closed JSON Schema 2020-12 object that requires the five fields, the proof, the seals and the signature", () => {
+  assert.equal(engineSchema.$schema, "https://json-schema.org/draft/2020-12/schema");
+  assert.equal(engineSchema.title, "Ryntra engine receipt");
+  assert.equal(engineSchema.additionalProperties, false);
+  for (const member of ["schemaVersion", "id", "operationId", "action", "flight", "proof", "reconciliation", "eip712", "receiptHash", "integrity", "signature"]) {
+    assert.ok(engineSchema.required.includes(member), member);
+  }
+  assert.equal(engineSchema.required.includes("anchor"), false, "an hour not closed yet has no anchor");
+  for (const member of ["why", "rule", "before", "after", "head"]) assert.ok(engineSchema.properties.flight.required.includes(member), member);
+  assert.deepEqual(undeclared(engineSchema, engineFixture.receipt), []);
 });
 
 test("the bridge schema is a closed JSON Schema 2020-12 object that requires both sides, the attestation and the anchor on Arc", () => {

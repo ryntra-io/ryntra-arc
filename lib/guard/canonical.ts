@@ -108,6 +108,12 @@ export const PAYOUT_HASH_DOMAINS = {
      testnet swap receipt (1.3.0, 1.5.0) and this one can never be presented
      as each other. */
   swapRouteReceipt: "ryntra:swap-route-receipt:1.9.0",
+  /* What Ryntra's executor itself did on the hub's network under a constitution — a payment, a swap or a ladder step
+     of a treasury or a creator's vault, or the anchor of an epoch — with the Flight Log's five fields.
+     Besides the two seals it carries an EIP-712 signature of Ryntra's receipt key over its seal, and
+     its digest is anchored once an epoch on chain. Its own label: a settlement receipt a person
+     signed, and a receipt of what Ryntra's own key did, can never be presented as each other. */
+  engineReceipt: "ryntra:engine-receipt:2.0.0",
 } as const;
 
 export type PayoutHashDomain = (typeof PAYOUT_HASH_DOMAINS)[keyof typeof PAYOUT_HASH_DOMAINS];
@@ -164,6 +170,7 @@ export function hashDecisionSettlementReceiptCore(core: unknown): string {
   if (schemaVersion === "1.7.0") return hashPayoutRecord(PAYOUT_HASH_DOMAINS.bridgeTransferReceipt, core);
   if (schemaVersion === "1.8.0") return hashPayoutRecord(PAYOUT_HASH_DOMAINS.bridgeRouteReceipt, core);
   if (schemaVersion === "1.9.0") return hashPayoutRecord(PAYOUT_HASH_DOMAINS.swapRouteReceipt, core);
+  if (schemaVersion === "2.0.0") return hashPayoutRecord(PAYOUT_HASH_DOMAINS.engineReceipt, core);
   throw new TypeError("Unsupported decision settlement receipt schema version.");
 }
 

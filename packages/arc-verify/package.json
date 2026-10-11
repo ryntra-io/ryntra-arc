@@ -1,9 +1,9 @@
 {
   "name": "@ryntra/arc-verify",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "private": true,
   "type": "module",
-  "description": "Check a Ryntra settlement receipt yourself: the receipt schema, its canonical serialization and both seals, and the transfer, payout or USDC/EURC exchange it records read back from Arc over public JSON-RPC. Read-only; no keys, no signing.",
+  "description": "Check a Ryntra receipt yourself: the receipt schema, its canonical serialization and both seals, the EIP-712 signature and the hour's anchor of what Ryntra's executor did, and the transfer, payout, USDC/EURC exchange or action it records read back from Arc over public JSON-RPC. Read-only; no keys, no signing.",
   "keywords": [
     "ryntra",
     "arc",
@@ -12,7 +12,8 @@
     "eurc",
     "receipt",
     "verification",
-    "json-schema"
+    "json-schema",
+    "eip-712"
   ],
   "license": "Apache-2.0",
   "author": "Dmytro Plavutskyi",
@@ -33,7 +34,7 @@
   },
   "exports": {
     ".": "./src/index.ts",
-    "./schema/receipt.schema.json": "./schema/receipt.schema.json"
+    "./schema/*": "./schema/*"
   },
   "types": "./src/index.ts",
   "sideEffects": false

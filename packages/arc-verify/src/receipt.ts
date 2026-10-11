@@ -28,7 +28,7 @@ export type {
 export type Json = Record<string, unknown>;
 
 /** Every schema version a receipt may carry; each has its own hash contract. */
-export const RECEIPT_SCHEMA_VERSIONS = ["1.0.0", "1.1.0", "1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.8.0", "1.9.0"] as const;
+export const RECEIPT_SCHEMA_VERSIONS = ["1.0.0", "1.1.0", "1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.8.0", "1.9.0", "2.0.0"] as const;
 
 /** `int_…`, `rcpt_…`, `rcp_…` and any other `prefix_hex` identifier the product mints. */
 const RECORD_REF = /^[a-z][a-z0-9-]{1,23}_[0-9a-f]{16,64}$/;
@@ -72,7 +72,12 @@ export function referencesOf(record: Json): string[] {
   /* A route across networks (1.8.0) answers to both its transactions too — the
      ones on EVM networks, which is what a pasted hash can be. */
   const route = record.schemaVersion === "1.8.0" ? object(record.route) : null;
+  /* What Ryntra's executor did (2.0.0) answers to its operation id, its signed digest and its transaction. */
+  const engine = record.schemaVersion === "2.0.0";
   const references = [
+    engine ? lowerHash(record.operationId) : null,
+    engine ? lowerHash(object(record.signature)?.digest) : null,
+    engine ? lowerHash(object(record.proof)?.transactionHash) : null,
     text(record.id),
     text(intent?.id),
     lowerHash(record.receiptHash),
@@ -96,6 +101,7 @@ export function referencesOf(record: Json): string[] {
  * readable the answer is `null` — never "Arc".
  */
 export function chainRefOf(record: Json): string | null {
+  if (record.schemaVersion === "2.0.0") return text(record.chainRef);
   const payoutChain = object(object(record.payout)?.chain);
   const declared = text(payoutChain?.chainRef) ?? text(object(record.received)?.chainRef);
   if (declared) return declared;
@@ -127,7 +133,10 @@ export type SealOutcome =
  * verdict nobody computed is the one thing a verifier may never print.
  */
 export function checkSeal(record: Json): SealOutcome {
-  const { receiptHash, integrity, ...core } = record;
+  /* A 2.0.0 receipt's signature and anchor are beside its seals, not under them: each is checked on its own (`engine.ts`). */
+  const { receiptHash, integrity, ...sealed } = record;
+  const { signature: _signature, anchor: _anchor, ...engineCore } = sealed;
+  const core = record.schemaVersion === "2.0.0" ? engineCore : sealed;
   const recordedReceiptHash = lowerHash(receiptHash);
   const integrityBlock = object(integrity);
   const recordedIntegrityHash = lowerHash(integrityBlock?.hash);

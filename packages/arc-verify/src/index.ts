@@ -83,4 +83,16 @@ export { DEFAULT_VERIFIER, askVerifier, readVerifierAnswer } from "./verifier.ts
 export type { VerifierAnswer } from "./verifier.ts";
 
 export { verifyReceipt } from "./verify.ts";
+
+/* Receipt 2.0.0 — what Ryntra's executor did: its EIP-712 form, the signer, the anchor and whose keys to trust. */
+export { RECEIPT_EIP712_NAME, RECEIPT_EIP712_TYPES, RECEIPT_EIP712_VERSION, receiptDigest, receiptDomainSeparator, receiptStructHash, receiptTypedData } from "./eip712.ts";
+export type { ReceiptDomain, ReceiptMessage } from "./eip712.ts";
+export { keccak256Hex, keccak256Text } from "./keccak.ts";
+export { parseSignature, recoverAddress } from "./secp256k1.ts";
+export { anchorLeaf, epochRoot, readAnchorRecord, rootOfProof } from "./anchor.ts";
+export type { AnchorReading, AnchorRecord } from "./anchor.ts";
+export { BUNDLED_REGISTRY, contractTrust, keyTrust, parseRegistry } from "./keys.ts";
+export type { ArcRegistry, KeyRole, Trust } from "./keys.ts";
+export { checkEngineReceipt, publicEngineView, signedParts } from "./engine.ts";
+export type { EngineCheck, EngineCheckOptions, PublicEngineView } from "./engine.ts";
 export type { Verdict, VerificationReport, VerifyOptions } from "./verify.ts";
