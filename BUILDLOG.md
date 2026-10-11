@@ -1,5 +1,29 @@
 # Ryntra on Arc — build log
 
+## 2026-10-11 — Limit, stop, trailing stop, TP/SL — and every fee before the button
+
+The order on the futures page at
+[arc.ryntra.io/app/futures](https://arc.ryntra.io/app/futures) now does
+more than a market buy. Under Long / Short: Market, Limit (until filled,
+maker only, or now-or-never), Stop (at the market or at a limit) and a
+trailing stop that follows your position on Hyperliquid even with the page
+closed. Take profit and stop loss go on with the order; «Reduce only» never
+opens the other way.
+
+Size it three ways: the dollars you put in, the coins, or the dollars you are
+ready to lose at your stop loss — the page works out the size. Choose isolated
+or cross margin per market. Before you press, you see the liquidation price
+(an estimate on cross, where your whole balance stands behind the position),
+what the stop loss would cost and the take profit would bring, and both fees
+in percent and dollars.
+
+Your positions show their TP and SL, funding paid since they opened, and three
+actions: close, reverse in one order, or change TP / SL and margin in place.
+Open orders can be moved or cancelled; the history says what became of each.
+
+Ryntra's fee is 0.05 % on this page and 0.02 % from a trader's layout; maker-only
+orders and trailing stops pay none.
+
 ## 2026-10-11 — Futures, laid out your way
 
 The futures page at
