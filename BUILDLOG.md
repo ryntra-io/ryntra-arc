@@ -1,5 +1,23 @@
 # Ryntra on Arc — build log
 
+## 2026-10-11 — A trading key for a day, and one question before it
+
+Trading on the futures page at
+[arc.ryntra.io/app/futures](https://arc.ryntra.io/app/futures) now stays on
+in your browser for one day — or three or seven, if you choose — instead of
+thirty. An hour before it ends, the page tells you when, and «Extend» turns it
+on again with one signature. A thirty-day key from before is let go at once,
+with nothing to sign.
+
+Before your first trading key, the page asks once that you are not from the
+US, Ontario or a sanctioned country — the places Hyperliquid's own terms leave
+out. Ryntra blocks no one by location: it keeps the date and your wallet
+address, tied to the approval your wallet signs, and you can always close your
+positions on Hyperliquid itself.
+
+A top-up from Arc is sent only to Circle's forwarder for your own Hyperliquid
+account; anything else is refused before your wallet is asked.
+
 ## 2026-10-11 — Futures orders that know their own outcome
 
 Every order on the futures page at arc.ryntra.io/app/futures now carries its
