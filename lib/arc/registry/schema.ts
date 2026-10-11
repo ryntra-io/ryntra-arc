@@ -16,9 +16,9 @@
  * - **One address, one job.** An address is never two
  *   things at once — not two contracts, not a contract and a key, and never
  *   one of the fee addresses of the attribution registry.
- * - **Each contract's mutability.** RyntraLocker, the hook's split logic and
- *   ReceiptAnchor are immutable; the factory, the router, the vaults and
- *   PolicyGuard change only through a 48-hour timelock with a public record —
+ * - **Each contract's mutability.** RyntraLocker, the hook's split logic,
+ *   ReceiptAnchor, the vault factory and the fee claimer are immutable; the factory, the router, the vaults and
+ *   PolicyGuard (with its board of guardians) change only through a 48-hour timelock with a public record —
  *   a change effective sooner than 48 hours after its announcement is refused.
  * - **A split is whole.** A launch pool's fee is 1 %, of which Ryntra takes
  *   exactly 20 % and the creator divides the rest within the published bounds:
@@ -50,6 +50,12 @@ export const RYNTRA_ARC_CONTRACTS = {
   AutopilotVault: "timelock",
   CampaignVault: "timelock",
   PolicyGuard: "timelock",
+  /* The three that serve them: PolicyGuard's board of guardians (its admin acts through a 48-hour timelock), the
+     factory that clones AutopilotVault and the claimer of a launch pool's fee shares — neither of the last two has
+     an admin. */
+  GuardianBoard: "timelock",
+  AutopilotVaultFactory: "immutable",
+  RyntraFeeClaimer: "immutable",
 } as const;
 
 export type RyntraArcContract = keyof typeof RYNTRA_ARC_CONTRACTS;

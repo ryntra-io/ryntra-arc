@@ -107,6 +107,18 @@ const publicAddresses = new Set([
      by the product's code and thrown away after signing — no one holds them, no money was ever at them. */
   "0x76fdc23e16502b1144e0503aa44ed272c696c129",
   "0xda43a451c36757e4d82e04858dae239cc2a84ae9",
+  /* Ryntra's own contracts on Arc Mainnet (lib/arc/registry/registry.ts): RyntraLocker, RyntraFeeClaimer, GuardianBoard,
+     PolicyGuard, ReceiptAnchor, the AutopilotVault implementation and its factory — deployed 2026-10-11. */
+  "0xda03a4b5a15743159a4d672e4f28b6e82ceac310",
+  "0xba5f6080cf555aecbbf40ca0da7613ce8b09a92e",
+  "0x99ca0b4da1ee8960565de32c7d6f3826f5afd397",
+  "0x3795eae3bfb879e71ecddc3ac5ef45f9ecf4d501",
+  "0xff4a4d22e84ad9c9857885a9ef57a8a10a63335b",
+  "0x2b0e6824699af307f436fe97827d929e2494eca2",
+  "0xe1fc8c0d47e93ece7cae54b25fd3915e680d6217",
+  /* The two keys the registry publishes for Arc Mainnet (AWS KMS): the executor's and the receipts'. */
+  "0xfb6f81b5970066a434f852a02073d7686638370d",
+  "0x45d2fdbf3aa67ff02b27e47a094948cdcba03418",
 ]);
 const synthetic = /^0x([0-9a-f])\1{39}$/;
 const evmAddress = /(?<![0-9a-fA-Fx])0x[0-9a-fA-F]{40}(?![0-9a-fA-F])/g;

@@ -1,5 +1,52 @@
 # Ryntra on Arc — build log
 
+## 2026-10-11 — Trade from the chart
+
+The futures chart at [arc.ryntra.io/app/futures](https://arc.ryntra.io/app/futures)
+now shows your trade on it: the position with its profit in dollars, percent or
+ticks, the liquidation price Hyperliquid itself would use, the breakeven after
+both fees and the funding paid so far, every open order, take profit and stop
+loss with what they would make or lose, and arrows where you were filled.
+
+Drag an order to a new price and it moves on Hyperliquid in one action. A move
+that would fill or fire at once is refused with a word, before anything is
+signed. The order you are typing shows on the chart too — with its own
+liquidation.
+
+In a trader's layout, «Quick trading» lets a click place the order: what the
+click will do is written next to the cursor, and only that is sent. Alt + click
+sets a take profit, Shift + click a stop loss, Ctrl + drag lays a ladder of
+limit orders. It starts off on every page and turns itself off when you leave.
+
+Also new: 1-second, 5-second and 15-second candles built from live trades, a
+«Four charts» layout, and the speed of your last orders next to «Live».
+
+## 2026-10-11 — A team's Treasury: rules, intents, a log of every move
+
+A team on Ryntra now has a Treasury at
+[arc.ryntra.io/app/treasury](https://arc.ryntra.io/app/treasury), over the
+same Payouts it already uses. The money stays in the treasury's own wallet.
+
+- **Overview** — the treasury wallet's balance, its health (Healthy, Watch,
+  Thin, Stressed or Paused, each with the reason shown), what waits for the
+  owner's approval and what is due next.
+- **Rules** — who may be paid, how much per payment, per day and per month, a
+  minimum balance, and when a payment needs the owner's approval. A form and
+  the same rules as JSON side by side. The first rules apply at once; every
+  later change is announced and waits at least 48 hours, with a countdown and
+  a button to withdraw it. Before saving, see which of the last 30 payouts the
+  new rules would have stopped.
+- **Intents** — every payment and every action of Ryntra's executor for this
+  treasury, from requested to reconciled, with «against the rules» next to any
+  that is. The owner approves or refuses an executor's intent, with a reason.
+- **Flight Log** — every move in five fields: why, which rule, before, after
+  and the proof. Export as CSV or JSON.
+- **Reports** — a monthly CSV for the accountant.
+
+Today the Treasury checks every payment against the rules and marks it; it
+does not yet block one. Blocking comes with Ryntra's PolicyGuard contract on
+Arc mainnet.
+
 ## 2026-10-11 — Limit, stop, trailing stop, TP/SL — and every fee before the button
 
 The order on the futures page at

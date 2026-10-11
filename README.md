@@ -29,7 +29,8 @@ application.
 [Open Ryntra on Arc](https://arc.ryntra.io/app) to send and receive USDC with a
 payment link, swap tokens, see [every market on Arc](https://arc.ryntra.io/app/markets)
 with its facts and Market Health and trade any of them with a live chart,
-bridge funds, pay out a team and read the receipts for your activity. Wallet balances, percentage
+bridge funds, pay out a team, keep a team's [Treasury](https://arc.ryntra.io/app/treasury)
+with its own rules and log, and read the receipts for your activity. Wallet balances, percentage
 amounts and gas-aware Max are available in Swap and Bridge.
 See the [build log](BUILDLOG.md) for the latest shipped behavior and fees.
 
