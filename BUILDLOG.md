@@ -1,5 +1,49 @@
 # Ryntra on Arc — build log
 
+## 2026-10-12 — Trade from the order book, with keys and a guard
+
+In trader layouts at [arc.ryntra.io/app/futures](https://arc.ryntra.io/app/futures),
+the order book now trades. Turn on «Quick trading» and a click on a price places
+an order there; the cursor says what the click will do before you click. Your
+own orders sit in «Mine»: drag them to a new price, or click to cancel.
+
+Keys work on the book under your pointer: buy or sell at once, join the best bid
+or ask, a step better, cancel, close, reverse, and 1–9 for nine sizes. Choose
+CScalp-style keys, Tiger's, or your own. Quick trading turns itself off after a
+minute untouched, when you switch away, and when live prices stop.
+
+The new «Risk» block holds your limits: the largest position per market and in
+all, orders a minute, a daily loss after which quick trading waits until
+midnight, a pause after losing trades in a row, no buying at once into a wide
+spread, and a hold for orders above a share of your account. «Panic», held for a
+moment, cancels every order and closes every position on every market. If the
+connection drops, the terminal says so; your take profit and stop loss keep
+working on Hyperliquid, and your orders are checked again when it is back.
+
+Two new layouts: «Scalp», with the order book in the middle, and «Risk».
+
+## 2026-10-11 — An order book, a tape, and blocks you place where you want
+
+Trader layouts at [arc.ryntra.io/app/futures](https://arc.ryntra.io/app/futures)
+now have an order book and a trades tape. «Add block» next to «View» lists every
+block with a line on what it is; a new block opens beside the one you are
+looking at, in its colour.
+
+The order book shows Hyperliquid's 20 price levels on each side and says so.
+A larger step joins levels to see further — only the steps Hyperliquid itself
+offers at that price. Beside each price: the size, the total from the best
+price, what traded there in the last minutes and bought minus sold, and your
+profit or loss if you closed there. Big levels stand out. Your orders sit on
+their price; markers show the mark and oracle price, your entry, breakeven
+after fees and funding, liquidation, take profit and stop loss. The best bid
+and ask update live; if prices stop coming, the book greys out and says so.
+
+The tape shows every trade as it happens; one order that took several prices is
+one line, with its average price. A filter hides the small ones.
+
+To move a block, drag it by its tab: a cross appears in the middle of the block
+under the pointer, and the part it will take lights up before you let go.
+
 ## 2026-10-11 — Trade from the chart
 
 The futures chart at [arc.ryntra.io/app/futures](https://arc.ryntra.io/app/futures)

@@ -6,7 +6,8 @@
  * went on Arc mainnet on 2026-10-11 (Arc v8-14), each signed by the founder's
  * wallet, each through the keyless CREATE2 deployer, the board's admin Ryntra's
  * Safe; the record of the run — `docs/arc-line/mainnet/deployments/arc-mainnet.json`.
- * Its two keys — the executor's and the receipts' — are in AWS KMS (LINE Р77), added the same day. The fee addresses Ryntra already
+ * Its two keys — the executor's and the receipts' — are in AWS KMS (LINE Р77), added the same day. The market — RyntraRouter,
+ * the launch factory and its hook — followed that night (Arc v8-15), with the launch pools' default split. The fee addresses Ryntra already
  * uses on Arc live in the attribution registry (`../attribution/registry.ts`,
  * served at `arc.ryntra.io/api/arc-registry`); a contract or key row may never
  * reuse one of them.
@@ -114,8 +115,72 @@ export const ARC_REGISTRY: ArcRegistry = {
       audit: null,
       changes: [],
     },
+    /* The market (Arc v8-15), signed by the founder's wallet on 2026-10-11 between 23:50 and 23:55 UTC; the Safe bound the
+       hook to the factory and waived the router's fee on launch pools right after. No outside audit yet. */
+    {
+      kind: "contract",
+      id: "router-mainnet-1",
+      contract: "RyntraRouter",
+      network: "arc-mainnet",
+      address: "0xab7158858cb589b7c3217692dc277b68d5acd693",
+      validFrom: "2026-10-11",
+      validTo: null,
+      mutability: "timelock",
+      deployTx: "0xe53b67b51a101e850f42fa540105fead30f2628ea3fa7fbd4c58dcb83a209306",
+      source: { commit: "84eff6af85d280c696af9652c278cf85a6282170", path: "contracts/arc/src/router/RyntraRouter.sol" },
+      audit: null,
+      changes: [],
+    },
+    {
+      kind: "contract",
+      id: "launch-factory-mainnet-1",
+      contract: "RyntraLaunchFactory",
+      network: "arc-mainnet",
+      address: "0x7fcce48fc813dea6a54f422830bbe47cc8f6ad07",
+      validFrom: "2026-10-11",
+      validTo: null,
+      mutability: "timelock",
+      deployTx: "0xce0812e169064c18afa8c1658553fc977f11de5210704ac3a8de8b1ca7ec83ab",
+      source: { commit: "84eff6af85d280c696af9652c278cf85a6282170", path: "contracts/arc/src/launch/RyntraLaunchFactory.sol" },
+      audit: null,
+      changes: [],
+    },
+    {
+      kind: "contract",
+      id: "launch-hook-mainnet-1",
+      contract: "RyntraLaunchHook",
+      network: "arc-mainnet",
+      address: "0xf85a1f72a4781234d5f7b85954cd702f7c4668cc",
+      validFrom: "2026-10-11",
+      validTo: null,
+      mutability: "immutable",
+      deployTx: "0xd3b02efdf3e6ece76dbe39d242b759d3f4dfe053af03fa0770b77195a1580488",
+      source: { commit: "84eff6af85d280c696af9652c278cf85a6282170", path: "contracts/arc/src/launch/RyntraLaunchHook.sol" },
+      audit: null,
+      changes: [],
+    },
   ],
-  splits: [],
+  splits: [
+    /* Every launch pool of the hook above: 1 % of the USDC side, Ryntra's 20 % to its treasury Safe, the rest each pool's
+       own — the creator's wallet, the vault's rewards fund and ladder — within the creator's bounds. */
+    {
+      kind: "split",
+      id: "launch-default-mainnet-1",
+      scope: "launch-default",
+      network: "arc-mainnet",
+      feeBps: 100,
+      shares: [
+        { role: "creator", bps: 5500, recipient: "per-pool" },
+        { role: "rewards", bps: 1000, recipient: "per-pool" },
+        { role: "liquidity", bps: 1500, recipient: "per-pool" },
+        { role: "ryntra", bps: 2000, recipient: "0x315e9cf7ca0c064b1077915ea49c3cc9a2ff032a" },
+      ],
+      validFrom: "2026-10-12",
+      validTo: null,
+      announcedAt: null,
+      poolCreatedOn: null,
+    },
+  ],
   keys: [
     /* AWS KMS (us-east-1), secp256k1, never exported; reached only by the production deployment of ryntra-arc-mainnet
        through Vercel's OIDC token and the role `ryntra-arc-mainnet-signer` (kms:Sign, kms:GetPublicKey on these two). */

@@ -116,6 +116,13 @@ const publicAddresses = new Set([
   "0xff4a4d22e84ad9c9857885a9ef57a8a10a63335b",
   "0x2b0e6824699af307f436fe97827d929e2494eca2",
   "0xe1fc8c0d47e93ece7cae54b25fd3915e680d6217",
+  /* The market (Arc v8-15, deployed 2026-10-11): RyntraRouter, the launch factory and its hook. */
+  "0xab7158858cb589b7c3217692dc277b68d5acd693",
+  "0x7fcce48fc813dea6a54f422830bbe47cc8f6ad07",
+  "0xf85a1f72a4781234d5f7b85954cd702f7c4668cc",
+  /* Ryntra's treasury Safe on Arc Mainnet: the admin of the guardian board and the payee of Ryntra's 20 % of every
+     launch pool's fee (the registry's launch-default split). */
+  "0x315e9cf7ca0c064b1077915ea49c3cc9a2ff032a",
   /* The two keys the registry publishes for Arc Mainnet (AWS KMS): the executor's and the receipts'. */
   "0xfb6f81b5970066a434f852a02073d7686638370d",
   "0x45d2fdbf3aa67ff02b27e47a094948cdcba03418",
