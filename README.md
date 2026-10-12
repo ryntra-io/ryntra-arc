@@ -1,4 +1,4 @@
-# Ryntra Arc — receipt verification
+# Ryntra on Arc — receipt verification
 
 [![verify](https://github.com/ryntra-io/ryntra-arc/actions/workflows/ci.yml/badge.svg)](https://github.com/ryntra-io/ryntra-arc/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)

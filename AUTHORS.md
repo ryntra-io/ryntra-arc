@@ -2,4 +2,4 @@
 
 - **Dmytro Plavutskyi** — founder, maintainer and initial contributor
 
-Ryntra Arc receipt verification is developed as part of Ryntra.
+Receipt verification for Ryntra on Arc is developed as part of Ryntra.
