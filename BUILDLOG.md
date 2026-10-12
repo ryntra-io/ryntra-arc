@@ -1,5 +1,28 @@
 # Ryntra on Arc — build log
 
+## 2026-10-12 — Funding, side by side and over time
+
+The futures terminal at [arc.ryntra.io/app/futures](https://arc.ryntra.io/app/futures)
+has a new «Funding» layout. The «Funding» block shows one market. It has the
+estimate for the hour running now, with a countdown, and what was paid last
+hour. It also shows how far the mark price stands from the oracle, and the next
+rate on Hyperliquid, Binance and Bybit. Each venue's rate is converted from its
+own interval.
+
+The history covers 7, 30 or 90 days. It shows the usual range of past hours and
+the share of hours that moved off the base rate. «Cost of holding» shows what a
+position would pay or receive in a day, a week or a month: at this hour's rate,
+and the range of the last 30 days. It is an estimate, not a forecast. Signed in,
+you also see the funding you paid and received over the last 30 days.
+
+«Funding compared» lists every Hyperliquid market next to Binance and Bybit. It
+shows the gap and marks which venue has the highest and the lowest rate. A gap
+is not profit, and the «?» says why. One unit for every rate: per hour, per
+8 hours, per day or per year. «Tell me when» watches a market's funding or mark
+price and tells you when it crosses the level you set. It never trades.
+
+The order form now shows «Funding for a day» next to the fees.
+
 ## 2026-10-12 — Trade from the order book, with keys and a guard
 
 In trader layouts at [arc.ryntra.io/app/futures](https://arc.ryntra.io/app/futures),
