@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Ryntra swap receipt",
-  "description": "A receipt issued by Ryntra for one swap on Arc through an aggregator's router: what left the wallet and what reached it, each read from the swap's own Transfers, the quote at signing beside them — what was expected, the floor the router enforced, the price impact and the pools — and Ryntra's fee as its own line, paid by the router in the same transaction, with what the quote said and what the Transfer to Ryntra actually carried. Version 1.9.0; its `receiptHash` is SHA-256 over the canonical core in the domain `ryntra:swap-route-receipt:1.9.0`, so it cannot be read as Circle's exchange on the testnet (1.3.0, 1.5.0) or any other receipt. `execution` names the swap's transaction on Arc and `swap.provider.router` the contract it called. The seals and the rules across members cannot be written in JSON Schema; @ryntra/arc-verify recomputes the seals and reads the transaction on Arc.",
+  "description": "A receipt issued by Ryntra for one swap on Arc through an aggregator's router: what left the wallet and what reached it, each read from the swap's own Transfers, the quote at signing beside them — what was expected, the floor the router enforced, the price impact and the pools — and Ryntra's fee as its own line, paid by the router in the same transaction, with what the quote said and what the Transfer to Ryntra actually carried. A trade in a Ryntra launch pool through RyntraRouter (provider `RYNTRA`, quote source `UNISWAP_V4_QUOTER`) carries no fee of Ryntra's: its one fee is the pool's 1 % (`poolFee`), as quoted and as the launch hook's `SwapExecuted` split it in the same transaction. Version 1.9.0; its `receiptHash` is SHA-256 over the canonical core in the domain `ryntra:swap-route-receipt:1.9.0`, so it cannot be read as Circle's exchange on the testnet (1.3.0, 1.5.0) or any other receipt. `execution` names the swap's transaction on Arc and `swap.provider.router` the contract it called. The seals and the rules across members cannot be written in JSON Schema; @ryntra/arc-verify recomputes the seals and reads the transaction on Arc.",
   "type": "object",
   "properties": {
     "schemaVersion": {
@@ -32,7 +32,8 @@
               "enum": [
                 "CIRCLE",
                 "KYBERSWAP",
-                "RELAY"
+                "RELAY",
+                "RYNTRA"
               ]
             },
             "reference": {
@@ -185,7 +186,8 @@
               "enum": [
                 "CIRCLE_STABLECOIN_SERVICE",
                 "KYBERSWAP_ROUTE_BUILD",
-                "RELAY_QUOTE_V2"
+                "RELAY_QUOTE_V2",
+                "UNISWAP_V4_QUOTER"
               ]
             }
           },
@@ -465,6 +467,122 @@
             "amount",
             "asset",
             "usd"
+          ],
+          "additionalProperties": false
+        },
+        "poolFee": {
+          "type": "object",
+          "properties": {
+            "bps": {
+              "type": "number",
+              "const": 100
+            },
+            "ryntraBps": {
+              "type": "number",
+              "const": 2000
+            },
+            "quoted": {
+              "type": "object",
+              "properties": {
+                "amount": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d{1,36})?$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "asset": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 24
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "usd": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d{1,36})?$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "amount",
+                "asset",
+                "usd"
+              ],
+              "additionalProperties": false
+            },
+            "actual": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "fee": {
+                      "type": "string",
+                      "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d{1,36})?$"
+                    },
+                    "toCreator": {
+                      "type": "string",
+                      "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d{1,36})?$"
+                    },
+                    "toRewards": {
+                      "type": "string",
+                      "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d{1,36})?$"
+                    },
+                    "toLiquidity": {
+                      "type": "string",
+                      "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d{1,36})?$"
+                    },
+                    "toRyntra": {
+                      "type": "string",
+                      "pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d{1,36})?$"
+                    },
+                    "asset": {
+                      "type": "string",
+                      "const": "USDC"
+                    }
+                  },
+                  "required": [
+                    "fee",
+                    "toCreator",
+                    "toRewards",
+                    "toLiquidity",
+                    "toRyntra",
+                    "asset"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "evidence": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          },
+          "required": [
+            "bps",
+            "ryntraBps",
+            "quoted",
+            "actual",
+            "evidence"
           ],
           "additionalProperties": false
         },

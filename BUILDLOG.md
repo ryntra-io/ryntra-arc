@@ -1,5 +1,40 @@
 # Ryntra on Arc — build log
 
+## 2026-10-15 — A trading desk for every market on Arc
+
+On a desk, a market's Trade at [arc.ryntra.io/app/markets](https://arc.ryntra.io/app/markets)
+is now a terminal of blocks: the chart, the order, the trades, every market,
+your watchlist, the depth ladder, who holds the liquidity, Market Health, the
+coin's facts, price alerts and what your wallet holds. Drag, split, stack and
+resize them, or pick a layout: Trading, Scalp, RWA research or Portfolio. A
+block can move to its own window on a second monitor; the window runs no code
+of its own, and your wallet is only ever asked from the main page. A layout
+exports as a file of blocks, with no market, amount or key in it. On a phone
+the page stays as it was.
+
+## 2026-10-15 — How deep is this market?
+
+Every market at [arc.ryntra.io/app/markets](https://arc.ryntra.io/app/markets)
+has a Liquidity tab. It shows what 5, 50, 500 and 5,000 dollars buy and sell in
+the market's pool right now, worked out from the pool's own liquidity. Next to
+it, every route Ryntra trades through is asked for the same amount. A map shows
+where along the price the pool's liquidity sits, and the part its hook holds is
+drawn apart. It is a model of the pool, not an order book, and it says so.
+
+## 2026-10-14 — Every coin on Arc, and the new ones in seconds
+
+Markets at [arc.ryntra.io/app/markets](https://arc.ryntra.io/app/markets) now
+has seven lists: On the market, Official, New, Trending, Liquid, Watch only and
+Restricted. «New» shows a market seconds after its pool appears on Arc.
+«Trending» comes from Ryntra's own index of Arc, and each row says why: trades
+in the last hour, and the pace against the day's average hour. Trading in a
+circle counts only as an estimate, and the «?» explains the rule.
+
+Charts are drawn from Ryntra's index of Arc. A coin with no market has its own
+page that says «Watch only» and «No supported route» instead of an empty error.
+A fund or a tokenized share says «For admitted holders only» and links to its
+issuer.
+
 ## 2026-10-12 — Funding, side by side and over time
 
 The futures terminal at [arc.ryntra.io/app/futures](https://arc.ryntra.io/app/futures)
